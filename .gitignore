@@ -17,6 +17,9 @@ venv/
 *.ini
 *.db
 **credentials/
+*docs/
+*.yaml
+config.json
 
 # Local VsCode settings
 .vscode/
@@ -24,3 +27,27 @@ venv/
 # Other folder with lots of files
 *downloaded/
 *parsed/
+
+# Unit testing
+.pytest_cache/
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
