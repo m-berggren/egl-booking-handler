@@ -4,6 +4,8 @@ import pyautogui
 import win32gui
 
 
+
+
 # Sets the overall delay between every PyAutoGUI call.
 pyautogui.PAUSE = 2
 

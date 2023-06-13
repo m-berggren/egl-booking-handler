@@ -12,20 +12,16 @@ class SqliteDB:
     """
 
     db_file: str
-    conn: sqlite3.Connection
     table_name: str
+    conn: sqlite3.Connection
     column: str
     booking_dict: dict
 
 
-    def __init__(self, db_file: str, table_name: str=None) -> None:
+    def __init__(self, db_file: str, table_name: str='egl_bookings') -> None:
         self.db_file = db_file
+        self.table_name = table_name
         self.conn = self._create_connection()
-
-        if table_name is None:
-            self.table_name = 'egl_bookings'
-        else: self.table_name = table_name
-
         self.column = None
         self.booking_dict = None
 
@@ -144,9 +140,9 @@ class SqliteDB:
         bool_dict = {}
         for sql_value, booking_key in zip(sql_row_data, booking_dict.keys()):
             if sql_value == booking_dict.get(booking_key):
-                bool_dict[booking_key] = True
-            else:
                 bool_dict[booking_key] = False
+            else:
+                bool_dict[booking_key] = True
         
         booking_dict['pdf_name'] = f"{sql_row_data[22]}, {booking_dict.get('pdf_name')}"
 
@@ -193,7 +189,7 @@ class SqliteDB:
 
 
     def update_booking_even_if_lower_revised_no(self, booking_dict:dict, column: str='booking_no') -> None:
-        """
+        """ TODO
         """
 
         self.column = column
@@ -219,7 +215,7 @@ class SqliteDB:
 
 
     def when_cancellation_exists_in_db(self, booking_dict:dict, column: str='booking_no') -> None:
-        """
+        """ TODO
         """
 
         self.column = column
@@ -242,9 +238,9 @@ class SqliteDB:
             self.conn.commit()
         except sqlite3.Error as e:
             logging.error(e)
+    
 
-
-    def get_booking_data(self, column: str, booking_dict: dict) -> dict:
+    def get_booking_data(self, booking: str|dict, column: str='booking_no') -> dict:
         """Get booking_dict data by the booking_dict id.
 
         :param column: column to search by
@@ -252,7 +248,12 @@ class SqliteDB:
         """
 
         self.column = column
-        self.booking_dict = booking_dict
+
+        if isinstance(booking, dict):
+            self.booking_dict = booking
+        else:
+            self.booking_dict = {column: booking}
+        
         return self._select_sql_row_data()
     
 
@@ -292,11 +293,11 @@ class SqliteDB:
         :param where_value: value to search by. If None, update all values in column
         """
 
-        sql_update = f'''UPDATE {self.table_name} SET {column} = {value}'''
+        sql_update = f'''UPDATE {self.table_name} SET {column} = "{value}"'''
 
         # If below params are not None, add WHERE clause to sql statement
         if where_column is not None and where_value is not None:
-            sql_update += f'''WHERE {where_column} = {where_value}'''
+            sql_update += f''' WHERE {where_column} = {where_value}'''
         
         cur = self.conn.cursor()
         try:
@@ -317,7 +318,7 @@ class SqliteDB:
 
         if navis_voy is not None:
             sql = f'''
-            SELECT booking_no, navis voy,
+            SELECT booking_no, navis_voy
             FROM {self.table_name} WHERE booking_in_navis=False'''
 
         # Only get bookings dated from today and one year ahead
@@ -330,7 +331,7 @@ class SqliteDB:
             SELECT booking_no FROM {self.table_name}
             WHERE (tod = '' or tod IS NULL)
             AND (etd BETWEEN '{date_today}'
-            AND '{one_year_from_today}'))'''
+            AND '{one_year_from_today}')'''
 
         else: return None
     

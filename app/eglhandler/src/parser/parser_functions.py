@@ -1,4 +1,3 @@
-import configparser
 import itertools
 import re
 from datetime import datetime
@@ -10,7 +9,15 @@ Functions for pdf_parser file.
 """
 
 def get_value_in_rect(doc, total_words, search_str, rect_add=(0, 0, 0, 0)) -> str:
-    """ Return the value of the search_str in the rect_add."""
+    """ Return the value of the search_str in the rect_add.
+    
+    :param doc: The pdf document
+    :param total_words: The total words in the pdf
+    :param search_str: The string to search for
+    :param rect_add: The rectangle to add
+    :return: The value of the search_str in the rect_add
+    """
+
     try:
         rect = doc[0].search_for(search_str)[0] + rect_add
     except IndexError:
@@ -24,7 +31,15 @@ def get_value_in_rect(doc, total_words, search_str, rect_add=(0, 0, 0, 0)) -> st
 
     
 def get_container_amount(total_words, rect_list, rect_add, height) -> int:
-    """ Return the amount of containers in the rect_list."""
+    """ Return the amount of containers in the rect_list.
+    
+    :param total_words: The total words in the pdf
+    :param rect_list: The list of rectangles
+    :param rect_add: The rectangle to add
+    :param height: The height of the rectangle
+    :return: The amount of containers
+    """
+
     list_count = []
     for rect in rect_list:
         rect = rect + rect_add + (0, height, 0, height)
@@ -34,7 +49,12 @@ def get_container_amount(total_words, rect_list, rect_add, height) -> int:
 
 
 def  check_revised_status(revised) -> tuple:
-    """ Check if revised is a cancellation or a revision."""
+    """ Check if revised is a cancellation or a revision.
+    
+    :param revised: The revised status
+    :return: The revised status and the cancelled status
+    """
+
     cancelled = ""
 
     if revised == "CANCELLATION":
@@ -45,7 +65,15 @@ def  check_revised_status(revised) -> tuple:
     
     
 def get_container_info(total_words, rect_list, rect_add, height) -> tuple:
-    """ Return the net weight and tare weight of the containers in the rect_list."""
+    """ Return the net weight and tare weight of the containers in the rect_list.
+    
+    :param total_words: The total words in the pdf
+    :param rect_list: The list of rectangles
+    :param rect_add: The rectangle to add
+    :param height: The height of the rectangle
+    :return: The list of net weights and tare weights
+    """
+
     list_count_nwt = []
     list_count_tare = []
     for rect in rect_list:
@@ -71,7 +99,15 @@ def get_container_info(total_words, rect_list, rect_add, height) -> tuple:
 
 
 def get_container_hazards(total_words, rect_list, rect_add, height) -> list:
-    """ Return the hazards of the containers in the rect_list."""
+    """ Return the hazards of the containers in the rect_list.
+
+    :param total_words: The total words in the pdf
+    :param rect_list: The list of rectangles
+    :param rect_add: The rectangle to add
+    :param height: The height of the rectangle
+    :return: The list of hazards
+    """
+
     list_count = str()
     for rect in rect_list:
         rect = rect + rect_add + (0, height, 0, height)
@@ -81,46 +117,85 @@ def get_container_hazards(total_words, rect_list, rect_add, height) -> list:
 
 def create_string_of_unnos(hazards_list:list) -> str:
     """ Concatenates lists into string and finds all UNNOs.
-    Returns a string of IMDG/UNNR separated by commas.
+
+    :param hazards_list: The hazards list
+    :return: Returns a string of IMDG/UNNR separated by commas.
     """
-    lists_into_string = _concatenate_list(hazards_list)
-    list_all_unnr = re.findall(r"\d\/\d{4}", lists_into_string)
-    return ', '.join(set(list_all_unnr))
+
+    lists_into_string = concatenate_list(hazards_list)
+
+    if lists_into_string:
+        list_all_unnr = re.findall(r"\d\/\d{4}", lists_into_string)
+        return ', '.join(set(list_all_unnr))
+    else:
+        return ""
     
 
-def _concatenate_floats(*lists:list) -> int:
-    """ Concatenates lists into one list and sums the values."""
+def concatenate_floats(*lists:list) -> int:
+    """ Concatenates lists into one list and sums the values.
+    
+    :param lists: The lists to concatenate
+    :return: The sum of the values
+    """
+
     concatenated_list = itertools.chain.from_iterable(*lists)
     summa = float(sum(concatenated_list))
     return int(summa)
     
 
-def _concatenate_list(*lists) -> str:
-    """ Concatenates lists into one string."""
-    return itertools.chain.from_iterable(*lists)
+def concatenate_list(*lists) -> str:
+    """ Concatenates lists into one string.
+    
+    :param lists: The lists to concatenate
+    :return: The concatenated string
+    """
+    new_list = list(itertools.chain.from_iterable(*lists))
+    return ''.join(new_list)
 
 
 def calculate_weights(weight_list:list, container_list:list) -> float:
-    """ Calculates the average weight of the containers in the weight_list."""
-    container_amount = _concatenate_floats(container_list)
+    """ Calculates the average weight of the containers in the weight_list.
+    
+    :param weight_list: The weight list
+    :param container_list: The container amount list
+    :return: The average weight
+    """
+
+    container_amount = concatenate_floats(container_list)
     if container_amount == 0:
         return 0.00
     else:
-        return float(_concatenate_floats(weight_list))/container_amount
+        return float(concatenate_floats(weight_list))/container_amount
 
 
 def calculate_vgm(list_nwt, list_tare, list_count) -> float:
-    """ Calculates the VGM of the containers in the list."""
+    """ Calculates the VGM of the containers in the list.
+    
+    :param list_nwt: The net weight list
+    :param list_tare: The tare weight list
+    :param list_count: The container amount list
+    :return: The VGM
+    """
     return round((calculate_weights(list_nwt, list_count) + calculate_weights(list_tare, list_count)))
 
 
 def departure_week(etd) -> str:
-    """ Returns the departure week of the etd."""
+    """ Returns the departure week of the etd.
+    
+    :param etd: The etd
+    :return: The departure week
+    """
     return str(datetime.strptime(etd, r'%Y/%m/%d').isocalendar().week).zfill(2)
 
 
 def check_if_dates_match(booking_date, etd) -> bool:
-    """ Checks if the booking date and etd match."""
+    """ Checks if the booking date and etd match.
+    
+    :param booking_date: The booking date
+    :param etd: The etd
+    :return: True if the dates match, False if not
+    """
+
     booking_date = re.search(r'\d{4}/\d{2}/\d{2}', booking_date).group()
     booking_date = datetime.strptime(booking_date, r'%Y/%m/%d')
     etd = datetime.strptime(etd, r'%Y/%m/%d')
@@ -131,7 +206,12 @@ def check_if_dates_match(booking_date, etd) -> bool:
     
 
 def extract_final_pod(string) -> str:
-    """ Extracts the final pod from string."""
+    """ Extracts the final pod from string.
+    
+    :param string: The string to be matched
+    :return: The final pod
+    """
+
     # Matches all characters before the first comma after a colon
     pattern = r'^:*(.+?),'
     match = re.search(pattern, string)
@@ -142,7 +222,12 @@ def extract_final_pod(string) -> str:
     
 
 def trim_date_string(string) -> str:
-    """ Trims date string from 'DATE:' if there is any in the beginning."""
+    """ Trims date string from 'DATE:' if there is any in the beginning.
+    
+    :param string: The string to be trimmed
+    :return: The trimmed string
+    """
+
     pattern= r'\d{4}/\d{2}/\d{2}\s\d{2}:\d{2}:\d{2}'
     matching = re.search(pattern, string)
     if matching:
@@ -150,8 +235,14 @@ def trim_date_string(string) -> str:
     else:
         return str()
     
+    
 def ocean_vessel_and_voy(string) -> dict:
-    """ Matching vessel and voyage number from string."""
+    """ Matching vessel and voyage number from string.
+
+    :param string: The string to be matched
+    :return: A dictionary with the vessel and voyage number
+    """
+
     matching = re.match(r'^VSL/VOY:*(\D+)*\s([\d\w-]*)$', string)
 
     if not matching:
@@ -160,32 +251,57 @@ def ocean_vessel_and_voy(string) -> dict:
     return {'vessel': matching.group(1), 'voy': matching.group(2)}
 
 
-def cfg_to_dict(config_file: str, section_num: int) -> dict:
-    """ Reads a config file and returns a dictionary with the values from the section."""
-    config = configparser.ConfigParser()
-    config.read(config_file)
+def _config_to_new_dict(config: dict, section: str) -> dict:
+    """ Inverts the config dictionary to a new dictionary.
+    The new dictionary has the values as keys and the keys as values.
+    Should only be called from 'map_from_dict' function.
+    
+    :param config: The config dictionary
+    :param section: The section in the config dictionary
+    :return: A new dictionary
+    """
+    
+    input_dict = config['parser'].get(section)
+    
+    output_dict = dict()
+    for key, value in input_dict.items():
+        if isinstance(value, list):
+            for item in value:
+                output_dict[item.upper()] = key.upper()
+        else:
+            output_dict[value.upper()] = key.upper()
+    return output_dict
 
-    section = config.sections()[section_num]
-    to_dict = dict()
-    for key, values in config[section].items():
-        crude_list = values.upper().split(',')
-        entries_list = list(map(str.strip, crude_list))
-        for value in entries_list:
-            to_dict[value] = key.upper()
-    return to_dict
 
-def map_from_dict(config_file: str, *args:str, section: int) -> str:
-    """ Maps the values from the config file to the args."""
-    map_dict = cfg_to_dict(config_file, section)
+def map_from_dict(config: dict, *args:str, section: str) -> str:
+    """ Returns the first matching value from args in dict returned from
+    '_config_to_new_dict'.
+
+    :param config: The config dictionary
+    :param args: The arguments to be matched
+    :param section: The section in the config dictionary
+    :return: The first matching value
+    """
+
+    map_dict = _config_to_new_dict(config, section)
     for key, value in map_dict.items():
         for arg in args:
             if key in arg.upper():
                 return value.upper()
     return str()
 
+
 def navis_voyage(terminal, vessel, departure_date, week) -> str:
     """ Returns the voyage number in Navis format {XXX-YYWW}.
-    XXX = vessel name, YY = last two digits of the year, WW = week number."""
+    XXX = vessel name, YY = last two digits of the year, WW = week number.
+    
+    :param terminal: The terminal
+    :param vessel: The vessel name
+    :param departure_date: The departure date
+    :param week: The departure week
+    :return: The voyage number in Navis format
+    """
+
     if not terminal:
         return str()
     return f'{vessel}-{departure_date[2:4]}{week}'

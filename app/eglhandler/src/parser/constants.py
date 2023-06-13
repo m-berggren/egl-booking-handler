@@ -1,8 +1,5 @@
 """Stores constants used by the parser module."""
 
-# Config file name located in root folder
-CONFIG_FILE = "app\eglhandler\settings_pdf_parser.ini"
-
 # Anchor words used during parsing
 BOOKING_REVISED = "/ REVISE :"
 DATE_BOOKED = "DATE:"

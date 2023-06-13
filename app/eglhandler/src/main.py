@@ -1,81 +1,92 @@
-import configparser
 import os
 import shutil
 
 import pandas as pd
+import yaml
 from tqdm import tqdm
+
 
 from eglhandler.src.graph.graph import Graph, EGL
 from eglhandler.src.parser import pdf_parser
 from eglhandler.src.sqlite.sqlite_db import SqliteDB
+from eglhandler.src.navis import navis_gui
 
-def main():
+
+def run_main_program():
+    """ This program runs from GUI application.
     
-    # Set up graph and egl objects
-    config = configparser.ConfigParser()
-    config.read(['app\eglhandler\settings_azure.ini'])
-    azure_settings = config['azure']
+    It will:
+    1. Download emails from Outlook
+    2. Parse pdfs
+    3. Import to database
+    4. Send to Navis
+    5. Update database with Navis info
+    6. Move pdfs to parsed folder
+    7. Move emails to processed folder
 
-    graph: Graph = Graph(azure_settings)
+    All bookings handled is saved in a database but also a csv file.
+    """
+
+    with open('app\eglhandler\config.yaml', 'r') as _f:
+        config = yaml.safe_load(_f)
+
+    """ Set up graph- and egl objects."""
+    graph: Graph = Graph(config)
     access_token = graph.generate_access_token(acquire_token_by="username_password")
     headers = graph.create_headers(access_token)
-    egl: EGL = EGL(azure_settings, headers)
+    egl: EGL = EGL(config, headers)
 
-    # Used with pdf parser to check bodyprevies for terminal names 
-    config_pdf_parser = configparser.ConfigParser()
-    config_pdf_parser.read(['app\eglhandler\settings_pdf_parser.ini'])
 
-    config_dir_paths = configparser.ConfigParser()
-    config_dir_paths.read(['app\eglhandler\settings_directories.ini'])
-    dir_paths = config_dir_paths['directories']
-
+    # TODO:
+    # When instantiating NavisGUI it will check for Navis window and loop until it is found
+    # May need to move the instantiation of NavisGUI to navis_gui module with a new class
+ 
     # Constants
-    DOWNLOAD_DIR = dir_paths['download_dir']
-    PARSED_DIR = dir_paths['parsed_dir']
-    DATABASE = dir_paths['database_file']
-    DOCUMENTS_DIR = dir_paths['documents_dir']
+    DOWNLOAD_DIR = config['directories'].get('downloaded')
+    PARSED_DIR = config['directories'].get('parsed')
+    DATABASE = config['sqlite'].get('database')
+    DOCUMENTS_DIR = config['directories'].get('docs')
 
     # Get email count
     email_count = egl.count_emails_in_folder()
 
     if email_count == 0:
-        print("No emails found in folder.")
+        print("\nNo emails found in folder.")
         return
     
-    print(f"Processing {email_count} emails...")
+    print(f"Processing {email_count} email(s)...\n")
     
     # Loop through emails, download pdf, parse pdf, import to database
-    for count in tqdm(email_count):
-
+    for count in range(email_count):
+        
         # Downloads pdf from email and gets ID of email
         # The argument is used to find corresponding words in bodypreview
         email_id, terminal_found, pdf_file = egl.download_pdf_from_email(
-            config_pdf_parser,
             DOWNLOAD_DIR
             )
 
         # Parses pdf and gets booking info
         data, same_date, cancellation, terminal = pdf_parser.booking_info(
             DOWNLOAD_DIR,
-            pdf_file
+            pdf_file,
+            config
             )
         
         # If terminal was not found in pdf_parser, i.e. missing from pdf,
         # use terminal found in email bodypreview, if any
         if not data['tod']:
-            data['tod'], terminal = terminal_found
+            data['tod'] = terminal_found
+            terminal = terminal_found
             # Run functions to determine navis voyage again
         
         if data is None:
             continue
 
         # This is where the booking is sent to the database and handled in Navis
-        
-
         sql_table = SqliteDB(DATABASE)
-        cur = sql_table.cursor()
+        cur = sql_table.conn.cursor()
 
-        cur.execute(f"SELECT revised_no from egl_bookings WHERE egl_bookings = {data['booking_no']}")
+        cur.execute(f"SELECT revised_no from egl_bookings WHERE booking_no = {data['booking_no']}")
         booking_exists = cur.fetchone()
 
         # If booking does not exist and needs to be created then set revised number to 0
@@ -85,23 +96,26 @@ def main():
             revised_no = 0
 
         # Check if pdf name is already in table
-        cur.execute(f"SELECT pdf_name from egl_bookings WHERE instr(pdf_name, {data['pdf_name']}) > 0")
+        cur.execute("SELECT pdf_name from egl_bookings WHERE INSTR(pdf_name, ?) > 0", (data['pdf_name'],))
         pdf_exists = cur.fetchone()
 
         cur.execute(f"SELECT booking_no from egl_bookings WHERE booking_no = {data['booking_no']}")
         booking_no = cur.fetchone()
 
+        cur.execute("SELECT cancellation from egl_bookings WHERE booking_no = ? AND cancellation = 'CANCELLATION'", (data['booking_no'],))
+        cancellation_exists_in_db = cur.fetchone()
+
 
         """ If statments below are used to determine what to do with the booking."""
         if not terminal:
             # If terminal is missing from pdf and bodypreview of e-mail
-            print(f"Booking {data['booking_no']} does not have a terminal.")
+            print(f"{data['booking_no']} does not have a terminal.")
             egl.move_email_to_folder(email_id, 'no_terminal_folder_id')
             # Do more?
 
         elif same_date:
             # When booking is updated on the same day as ETD
-            print(f"Update for booking {data['booking_no']} received same day as ETD.")
+            print(f"Update for {data['booking_no']} received same day as ETD.")
             egl.move_email_to_folder(email_id, 'no_change_folder_id')
 
         elif pdf_exists:
@@ -113,12 +127,15 @@ def main():
             # If cancellation is found in pdf_parser
             if booking_exists:
                 # When booking exists it can be removed
-                print(f"Deleting booking {data['booking_no']} in Navis.")
-                sql_table.delete_booking(data['booking_no'])
+                print(f"Deleting {data['booking_no']} in Navis.")
+                sql_table.update_booking_with_cancellation(data)
                 # Delete booking in Navis
+                navis_gui.delete_booking(data, config)
+                egl.move_email_to_folder(email_id, 'cancel_folder_id')
             else:
                 # If booking does not exist in database, but cancellation is found in pdf_parser
-                print(f"Booking {data['booking_no']} should be deleted but does not exist in database.")
+                print(f"{data['booking_no']} should be deleted but does not exist in database.")
+                sql_table.update_booking_with_cancellation(data)
                 egl.move_email_to_folder(email_id, 'no_change_folder_id')
 
         elif not booking_exists:
@@ -126,17 +143,28 @@ def main():
             print(f"Creating {data['booking_no']} in Navis.")
             sql_table.create_booking(data)
             # Create booking in Navis
+            navis_gui.create_booking(data, config, DATABASE)
+            egl.move_email_to_folder(email_id, 'db_folder_id')
 
-        elif revised_no > data['revised_no']:
+        elif revised_no > int(data['revised_no']):
             # If revised number in pdf_parser is less than in database
             print(f"Revised number in {data['booking_no']} is less than in database.")
+            sql_table.update_booking_even_if_lower_revised_no(data)
             egl.move_email_to_folder(email_id, 'no_change_folder_id')
 
-        elif revised_no < data['revised_no']:
+        elif cancellation_exists_in_db:
+            # If cancellation exists in database
+            print(f"{data['booking_no']} already cancelled in database. Saving PDF file name.")
+            sql_table.when_cancellation_exists_in_db()
+            egl.move_email_to_folder(email_id, 'no_change_folder_id')
+
+        elif revised_no < int(data['revised_no']):
             # If revised number in pdf_parser is greater than in database
-            print(f"Updating booking {data['booking_no']} in database and possibly Navis.")
+            print(f"Updating {data['booking_no']} in database and possibly Navis.")
             boolean_dict = sql_table.update_booking(data)
             # Update booking in Navis
+            navis_gui.update_booking(data, boolean_dict, config, DATABASE)
+            egl.move_email_to_folder(email_id, 'db_folder_id')
 
         # Moves pdf to new directory 
         shutil.move(
@@ -144,11 +172,53 @@ def main():
             os.path.join(PARSED_DIR, pdf_file)
             )
         
-        df_row = pd.dataframe(data, index=[0])
-        df_row.to_csv(os.path.join(DOCUMENTS_DIR, 'booking_info.csv'), mode='a', header=False, index=False)
+        df_row = pd.DataFrame(data, index=[0])
+        df_row.to_csv(
+            os.path.join(DOCUMENTS_DIR, 'booking_info.csv'),
+            mode='a',
+            header=False,
+            index=False
+            )
 
-        print(f"Booking {booking_no} e-mail done. {email_count - count} e-mails remaining.")
-        
-        
-if __name__ == "__main__":
-    main()
+        print(f"{count + 1} of {email_count} e-mail(s).", "\n")
+
+
+def run_missing_bookings_in_navis(booking_list: list):
+    """ Creates bookings in Navis that are missing due to no active voyage."""
+
+    with open('app\eglhandler\config.yaml', 'r') as _f:
+        config = yaml.safe_load(_f)
+
+    DATABASE = config['sqlite'].get('database')
+
+    # Get column names in a list from config file
+    db_columns = config['sqlite'].get('db_columns')
+    sql_table = SqliteDB(DATABASE)
+
+    print(f"Attempting to create {', '.join(booking_list)} in Navis.")
+
+    for num, booking in enumerate(booking_list):
+        values_list = sql_table.get_booking_data(booking)
+
+        created_dict = dict(zip(db_columns, values_list))
+
+        voyage_does_not_exist = navis_gui.create_booking(created_dict, config, DATABASE)
+
+        # If this is true it means voyage is not found in Navis
+        if voyage_does_not_exist:
+            print(f"{booking} has not been created.")
+            print(f"{len(booking_list) - (num + 1)} e-mail(s) remaining.")
+            continue
+        else:
+            # This will update the booking at column booking_in_navis to 1 (True)
+            sql_table.update_values_in_column(
+                column='booking_in_navis',
+                value='1',
+                where_column='booking_no',
+                where_value=booking
+                )
+
+            print("\n", f"{booking} done.")
+            print(f"{len(booking_list) - (num + 1)} booking(s) remaining.")
+
+

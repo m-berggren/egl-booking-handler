@@ -1,16 +1,13 @@
 import os
-from pathlib import Path
 
 import fitz
 
-import parser_functions as pf
-from constants import *
+import eglhandler.src.parser.parser_functions as pf
+from eglhandler.src.parser.constants import *
 
 
-def main(file_path):
+def parse_pdf(file_path: str, config: dict) -> dict:
     """Main function for parsing pdfs."""
-    root_dir = Path().absolute()
-    config_path = os.path.join(root_dir, CONFIG_FILE)
 
     with open(file_path) as f:
         doc = fitz.open(f)
@@ -74,8 +71,8 @@ def main(file_path):
     discharge_terminal = pf.get_value_in_rect(doc, total_words, DISCHARGE_TERMINAL, RECT_DISCHARGE_TERMINAL)
 
     trimmed_booked_date = pf.trim_date_string(date_booked)
-    terminal = pf.map_from_dict(config_path, discharge_terminal, stowage_code, section=3)
-    vessel = pf.map_from_dict(config_path, terminal, section=1)
+    terminal = pf.map_from_dict(config, discharge_terminal, stowage_code, section='tod')
+    vessel = pf.map_from_dict(config, terminal, section='vessel')
     week = pf.departure_week(departure_date)
     navis_voyage = pf.navis_voyage(terminal, vessel, departure_date, week)
 
@@ -95,7 +92,7 @@ def main(file_path):
         'departure_week': week,
         'navis_voy': navis_voyage,
         'departure_date': departure_date,
-        'discharge_port': pf.map_from_dict(config_path, discharge_port, section=2),
+        'discharge_port': pf.map_from_dict(config, discharge_port, section='pod'),
         'ocean_vessel': pf.ocean_vessel_and_voy(mother_vessel)['vessel'],
         'voyage': pf.ocean_vessel_and_voy(mother_vessel)['voy'],
         'stowage_code': stowage_code,
@@ -119,10 +116,10 @@ def main(file_path):
     return return_dict
 
 
-def booking_info(dir, pdf_file):
+def booking_info(dir: str, pdf_file: str, config: dict) -> tuple:
     """ Function that takes a directory and a pdf file and returns a dictionary with booking information."""
     # Get all data from pdf
-    pdf_data = main(os.path.join(dir, pdf_file))
+    pdf_data = parse_pdf(os.path.join(dir, pdf_file), config)
 
     # If file does not exist return None
     if pdf_data is None:
@@ -185,9 +182,6 @@ if __name__ == '__main__':
                     string = f'|{key:>20}: {str(value):<50}|'
                     f.write(string + nl)
                     print(string)"""
-    
-    #main(r'tests\SB9SJRXL.PDF')
-    main(r'app\eglhandler\src\parser\tests\files\SB9SJRXL.PDF')
 
 
 

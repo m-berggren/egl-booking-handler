@@ -2,12 +2,13 @@ import atexit
 import json
 import os
 import re
+from configparser import SectionProxy
 
 import requests
 from msal import PublicClientApplication, SerializableTokenCache
 from tqdm import tqdm
 
-from eglhandler.src.parser.parser_functions import _config_to_new_dict
+from eglhandler.src.parser.parser_functions import cfg_to_dict
 
 
 class Graph:
@@ -22,21 +23,21 @@ class Graph:
     :param config: Config settings.
     """
 
-    settings : dict
+    settings : SectionProxy
     access_token_cache : SerializableTokenCache
     app_client : PublicClientApplication
     token_response : dict
 
-    def __init__(self, config: dict) -> None:
-        self.settings = config['graph']['azure']
+    def __init__(self, config: SectionProxy) -> None:
+        self.settings = config
 
-        self.client_id = self.settings['client_credential'].get('client_id')
-        self.authority = self.settings['tenant_credential'].get('authority')
-        self.scope = str.split(self.settings['default'].get('scope'))
+        self.client_id = self.settings['client_id']
+        self.authority = self.settings['authority']
+        self.scope = str.split(self.settings['scope'])
 
-        self.username = self.settings['user_credential'].get('username')
-        self.password = self.settings['user_credential'].get('password')
-        self.cache_file = config['graph']['file'].get('token_cache')
+        self.username = self.settings['username']
+        self.password = self.settings['password']
+        self.cache_file = self.settings['token_cache_file']
         self.access_token_cache = SerializableTokenCache()
         
         self.app_client = PublicClientApplication(
@@ -103,31 +104,29 @@ class EGL(Graph):
     :param folder: Name of folder to download e-mails from. Optional.
     """
 
-    def __init__(self, config: dict, headers: dict, folder: str=None) -> None:
+    def __init__(self, config: SectionProxy, headers: dict, folder: str=None) -> None:
         super().__init__(config)
 
         self.headers = headers
-        self.endpoint = self.settings['default'].get('endpoint')
-        self.folder_id = config['graph']['o365_folder_id']
-        
+        self.endpoint = self.settings['endpoint']
         if folder is None:
-            folder = 'evergreen'
-        self.main_folder_id = self.folder_id.get(folder)
+            folder = 'main_folder_id'
+        self.main_folder_id = self.settings[folder]
 
-        self.db_folder_id = self.folder_id.get('database')
-        self.cancel_folder_id = self.folder_id.get('cancellation')
-        self.no_change_folder_id = self.folder_id.get('no_change')
-        self.no_voyage_folder_id = self.folder_id.get('no_voyage')
-        self.no_terminal_folder_id = self.folder_id.get('no_terminal')
-        self.not_for_us_folder_id = self.folder_id.get('not_for_us')
+        self.db_folder_id = self.settings['db_folder_id']
+        self.cancel_folder_id = self.settings['cancel_folder_id']
+        self.no_change_folder_id = self.settings['no_change_folder_id']
+        self.no_voyage_folder_id = self.settings['no_voyage_folder_id']
+        self.no_terminal_folder_id = self.settings['no_terminal_folder_id']
+        self.not_for_us_folder_id = self.settings['not_for_us_folder_id']
 
         self.url = f'{self.endpoint}/me/mailFolders/{self.main_folder_id}/messages'
-        self.config = config
-        self.file_with_folder_ids = self.config['graph']['file'].get('folder_ids')
+
+        self.file_with_folder_ids = self.settings['file_with_folder_ids']
         self.dir_path = os.path.abspath(os.path.dirname(__file__))
 
     
-    def download_pdf_from_email(self, dir_path: str=None) -> str:
+    def download_pdf_from_email(self, config: SectionProxy, dir_path: str=None) -> str:
         """Download PDF attachment from e-mail.
         Will download the attachment from last e-mail in folder.
 
@@ -143,13 +142,13 @@ class EGL(Graph):
             )
 
         if not response.ok:
-            print("\n", f"Error retrieving e-mails from EGL.download_pdf_from_email: {response.status_code, response.text}")
+            print(f"Error retrieving e-mails: {response.status_code, response.text}")
             return None
 
         emails = response.json()['value']
 
         if not emails:
-            print(f"\nNo e-mails in folder.")
+            print(f"No e-mails in folder.")
             return None         
         else:
             last_email = emails.pop()
@@ -157,7 +156,7 @@ class EGL(Graph):
         self.email_body_preview = last_email['bodyPreview']
         email_id = last_email['id']
 
-        terminal_found_in_email = self._check_bodypreview_for_terminal()
+        terminal_found_in_email = self._check_bodypreview_for_terminal(config)
         
         email_url = f"{self.url}/{email_id}?$expand=attachments"
         email_response = requests.get(
@@ -166,7 +165,7 @@ class EGL(Graph):
             )
 
         if not email_response.ok:
-            print("\n", f"Error retrieving e-mail from EGL.download_pdf_from_email: {attachment_response.status_code, attachment_response.text}")
+            print(f"Error retrieving e-mail: {attachment_response.status_code, attachment_response.text}")
             return None
         
         email_data = email_response.json()
@@ -196,22 +195,20 @@ class EGL(Graph):
         filename = os.path.join(self.dir_path, attachment_filename)
         
         if not attachment_response.ok:
-            print("\n", f"Error retrieving attachment from EGL.download_pdf_from_email: {attachment_response.status_code, attachment_response.text}")
+            print(f"Error retrieving attachment: {attachment_response.status_code, attachment_response.text}")
             
         with open(filename, 'wb') as file:
             file.write(attachment_response.content)
+
+        print(f"Attachment downloaded: {attachment_filename}")
                             
         return email_id, terminal_found_in_email, attachment_filename
     
 
-    def _check_bodypreview_for_terminal(self) -> str:
-        """ Check if body preview contains terminal name.
-
-        :param config: Dict from yaml file.
-        :return: Terminal name if found, else None.
+    def _check_bodypreview_for_terminal(self, config: SectionProxy) -> str:
         """
-
-        dict_with_terminal_names = _config_to_new_dict(self.config, section='tod')
+        """
+        dict_with_terminal_names = cfg_to_dict(config, section_num=3)
         terminal_names = list(dict_with_terminal_names.keys())
 
         body_preview = self.email_body_preview.upper()
@@ -224,13 +221,9 @@ class EGL(Graph):
         return None
 
 
-    def download_pdfs_from_all_emails(self, url: str=None) -> tuple:
+    def download_pdfs_from_all_emails(self, url: str=None) -> str:
         """Download all PDFs from all e-mails in folder.
-        Requires a bit more set up to work and should not be used very often.
-        
-        :param url: URL to get e-mails from. Optional.
-        :return: Tuple with list of e-mail IDs and list of terminal names.
-        """
+        Requires a bit more set up to work and should not be used very often."""
 
         if url is not None:
             response = requests.get(
@@ -244,7 +237,7 @@ class EGL(Graph):
                 )
         
         if not response.ok:
-            print("\n", f"Error retrieving e-mails from EGL.download_pdf_from_all_emails: {response.status_code, response.text}", "\n")
+            print(f"Error retrieving e-mails: {response.status_code, response.text}")
             return None
 
         response_data = response.json()
@@ -274,7 +267,7 @@ class EGL(Graph):
                 )
 
             if not email_response.ok:
-                print("\n", f"Error retrieving email from EGL.download_pdf_from_all_emails: {email_response.status_code}, {email_response.text}")
+                print(f"Error retrieving email: {email_response.status_code}, {email_response.text}")
                 continue
 
             email_data = email_response.json()
@@ -299,22 +292,19 @@ class EGL(Graph):
             filename = os.path.join(self.dir_path,'pdfs', attachment_filename)
             
             if not attachment_response.ok:
-                print("\n", f"Error downloading attachment from EGL.download_pdf_from_all_emails: {attachment_filename}")
+                print(f"Error downloading attachment: {attachment_filename}")
                 continue
             try:
                 with open(filename, 'wb') as file:
                     file.write(attachment_response.content)
             except:
-                print("\n", f"Error saving file from EGL.download_pdf_from_all_emails: {attachment_filename}")
+                print(f"Error saving file: {attachment_filename}")
 
         return next_url_page, len(emails)
     
 
-    def count_emails_in_folder(self) -> int:
-        """Count the number of e-mails in folder and return it.
-        
-        :return: Number of e-mails in folder.
-        """
+    def count_emails_in_folder(self):
+        """Count the number of e-mails in folder and return it"""
 
         url = f"{self.endpoint}/me/mailFolders/{self.main_folder_id}?$select=totalItemCount"
         response = requests.get(
@@ -323,7 +313,7 @@ class EGL(Graph):
         )
 
         if not response.ok:
-            print("\n", f"Error from EGL.count_emails_in_folder: {response.status_code, response.text}")
+            print(f"Error: {response.status_code, response.text}")
             return None
         
         return response.json()['totalItemCount']
@@ -338,7 +328,7 @@ class EGL(Graph):
             )
 
         if not response.ok:
-            print("\n", f"Error from EGL.count_emails_in_folder: {response.status_code, response.text}", "\n")
+            print(f"Error: {response.status_code, response.text}")
             return None
         
         response = response.json()
@@ -363,16 +353,13 @@ class EGL(Graph):
     def move_email_to_folder(self, email_id:str, folder:str) -> None:
         """Move e-mail to folder. Used in conjunction with get_email_id_from_folder.
 
-        :param email_id: ID of e-mail to move.
-        :param folder: Folder to move e-mail to.
-        
-        Folder can be one of the following:\n
-        main_folder_id,\n
-        db_folder_id,\n
-        cancel_folder_id,\n
-        no_change_folder_id,\n
-        no_voyage_folder_id,\n
-        no_terminal_folder_id,\n
+        Folder can be one of the following:
+        main_folder_id,
+        db_folder_id,
+        cancel_folder_id,
+        no_change_folder_id,
+        no_voyage_folder_id,
+        no_terminal_folder_id,
         not_for_us_folder_id
         
         Example:
@@ -400,8 +387,10 @@ class EGL(Graph):
             json=payload
             )
 
-        if response.status_code != 201:
-            print("\n", f"Error moving email, from EGL.move_email_to_folder: {response.status_code, response.text}")
+        if response.status_code == 201:
+            print(f"Email moved to folder")
+        else:
+            print(f"Error moving email: {response.status_code, response.text}")
 
 
     def get_folder_ids(self, folder: str=None) -> None:

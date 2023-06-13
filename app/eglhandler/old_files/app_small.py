@@ -1,11 +1,13 @@
 import builtins
-import concurrent.futures
 import threading
 import tkinter as tk
 from tkinter import ttk, messagebox
 
 from eglhandler.src import main
 from eglhandler.src.sqlite.sqlite_db import SqliteDB
+
+import yaml
+from eglhandler.src.graph.graph import Graph, EGL
 
 
 class EGLApp:
@@ -67,7 +69,7 @@ class EGLApp:
         """ Set the window position. """
 
         # Geometry: width x height + x_offset + y_offset
-        self.window.geometry("504x1009+-7+0")
+        self.window.geometry("244x1009+-7+0")
         self.window.resizable(False, False)
 
         return self.window
@@ -78,7 +80,7 @@ class EGLApp:
         lbl = ttk.Label(
             self.content,
             text="Evergreen-bokningar",
-            font=("Calibri Light", 20, "bold", "underline"),
+            font=("Calibri Light", 16, "bold", "underline"),
             padding=(0, 5, 0, 5)
         )
         btn = ttk.Button(
@@ -90,9 +92,9 @@ class EGLApp:
         )
         txt = tk.Text(
             self.content,
-            width=60,
-            height=22,
-            font=("Calibri Light", 11),
+            width=32,
+            height=27,
+            font=("Calibri Light", 10),
             border=3
         )
         
@@ -104,22 +106,22 @@ class EGLApp:
         lbl_1 = ttk.Label(
             self.content,
             text="Bokningar utan resa i Navis",
-            font=("Calibri Light", 14, "bold", "underline"),
-            padding=(0, 7, 0, 0),
+            font=("Calibri Light", 11, "bold", "underline"),
+            padding=(0, 15, 0, 0),
             justify=tk.CENTER
         )
         lbl_2 = ttk.Label(
             self.content,
-            text="(kan kopieras)",
-            font=("Calibri Light", 10),
+            text="(saknas resa)",
+            font=("Calibri Light", 8),
             padding=(0, 0, 0, 0),
             justify=tk.CENTER
         )
         lbl_3 = ttk.Label(
             self.content,
             text="Markera de bokningar du vill köra",
-            font=("Calibri Light", 10),
-            padding=(0, 0, 0, 5),
+            font=("Calibri Light", 8),
+            padding=(0, 5, 0, 5),
             justify=tk.CENTER
         )
         btn = ttk.Button(
@@ -148,15 +150,15 @@ class EGLApp:
         lbl_1 = ttk.Label(
             self.content,
             text="Bokningar utan terminal",
-            font=("Calibri Light", 14, "bold", "underline"),
-            padding=(0, 7, 0, 0),
+            font=("Calibri Light", 11, "bold", "underline"),
+            padding=(0, 15, 0, 0),
             justify=tk.CENTER
         )
         
         lbl_2 = ttk.Label(
             self.content,
             text="(kan kopieras)",
-            font=("Calibri Light", 10),
+            font=("Calibri Light", 8),
             padding=(0, 0, 0, 5),
             justify=tk.CENTER
         )
@@ -183,19 +185,8 @@ class EGLApp:
         self.bookings.get('button').config(state=tk.DISABLED)
         self._delete_text()
 
-        self.thread = threading.Thread(
-            target=main.run_main_program()
-            )
-
-        """self.thread = threading.Thread(
-            target=main.run_main_program,
-            daemon=True
-            )"""
-        
+        self.thread = threading.Thread(target=main.run_main_program)
         self.thread.start()
-
-        """with concurrent.futures.ThreadPoolExecutor() as executor:
-            executor.submit(main.run_main_program, range(1))"""
 
         self.window.after(self.ms_delay, self._check_if_ready)
 
@@ -218,17 +209,11 @@ class EGLApp:
 
         # Run selected bookigns from the treeview and inserts them in Navis.
         self.thread = threading.Thread(
-             target=main.run_missing_bookings_in_navis(bookings_list)
-        )
-
-        """self.thread = threading.Thread(
-            target=main.run_missing_bookings_in_navis,
-            args=[bookings_list],
-            daemon=True
-            )"""  # Function with bookings as argument
+            target=main.run_missing_bookings_in_navis(bookings_list)
+            )  # Function with bookings as argument
         self.thread.start()
 
-        self.window.after(self.ms_delay, self._check_if_ready)
+        self.window.after(self.ms_delay, self._check_if_ready)#, self.thread)
 
 
     def _get_values_from_no_navis_bookings(self) -> tuple:
@@ -265,8 +250,7 @@ class EGLApp:
 
     def _check_if_ready(self) -> None:
         if self.thread.is_alive():
-            print('Waiting for thread to finish...')
-            #return
+            return
         else:
             self._write_out_missing_bookings()
             print('Done!')

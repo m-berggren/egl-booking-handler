@@ -3,19 +3,24 @@ import os
 import shutil
 
 import pandas as pd
+import yaml
 from tqdm import tqdm
 
 from eglhandler.src.parser.pdf_parser import booking_info
 from eglhandler.src.sqlite.sqlite_db import SqliteDB
 
-DATABASE = r"C:\Users\SWV224\Documents\egl-booking-handler\app\eglhandler\logs\egl_sqlite.db"
+
 
 def main():
-    DOWNLOAD_DIR = r"C:\Users\SWV224\Desktop\pdfs\downloaded"
-    PARSED_DIR = r"C:\Users\SWV224\Desktop\pdfs\parsed"
-    REVISED_NO_FILE = r"C:\Users\SWV224\Documents\egl-booking-handler\app\eglhandler\logs\same_revised_no.txt"
-    DATAFRAME_FILE = r"C:\Users\SWV224\Documents\egl-booking-handler\app\eglhandler\logs\parser_df.csv"
-    LOG_FILE = r"C:\Users\SWV224\Documents\egl-booking-handler\app\eglhandler\logs\sqlite_error.log"
+    with open('app\eglhandler\config.yaml', 'r') as _f:
+        config = yaml.safe_load(_f)
+
+    DOWNLOAD_DIR = config['directories'].get('downloaded')
+    PARSED_DIR = config['directories'].get('parsed')
+    SAME_REVISED_NO = config['files'].get('same_revised_no')
+    BOOKING_INFO_FILE = config['files'].get('booking_info') 
+    LOG_FILE = config['files'].get('error_log')
+    DATABASE = config['sqlite'].get('database')
 
     logger = logging.getLogger('sqlite_error.log')
     logger.setLevel(logging.ERROR)
@@ -38,7 +43,7 @@ def main():
                 continue
 
             # PARSE PDF
-            booking, same_date, cancellation, terminal = booking_info(DOWNLOAD_DIR, pdf_file)
+            booking, same_date, cancellation, terminal = booking_info(DOWNLOAD_DIR, pdf_file, config)
             
             if booking is None:
                 continue
@@ -91,17 +96,21 @@ def main():
                 sql_table.when_cancellation_exists_in_db(booking)
             elif revised_no == int(booking['revised_no']):
                 #print('revised no same as existing')
-                with open(REVISED_NO_FILE, 'a') as f:
+                with open(SAME_REVISED_NO, 'a') as f:
                     f.write(f'{booking["booking_no"]} revised no {booking["revised_no"]} already exist. Pdf: {pdf_exists}\n')
 
             shutil.move(os.path.join(DOWNLOAD_DIR, pdf_file), os.path.join(PARSED_DIR, pdf_file))
 
-        df.to_csv(DATAFRAME_FILE)
+        df.to_csv(BOOKING_INFO_FILE, index=False)
 
     parse_all_pdfs_in_folder()
 
 
 def set_up_db():
+    with open('app\eglhandler\config.yaml', 'r') as _f:
+        config = yaml.safe_load(_f)
+    
+    DATABASE = config['sqlite'].get('database')
 
     table_dict = {
         'cancellation': 'TEXT',
@@ -133,5 +142,7 @@ def set_up_db():
     sql_table = SqliteDB(DATABASE, table_name='egl_bookings')
     sql_table.create_table(table_dict)
 
-#set_up_db()
-main()
+if __name__ == "__main__":
+    #set_up_db()
+    #main()
+    pass

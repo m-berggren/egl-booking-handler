@@ -1,10 +1,10 @@
-from eglhandler.src.sqlite.sqlite_db import SqliteDB
+#from eglhandler.src.sqlite.sqlite_db import SqliteDB
 
-from eglhandler.src.graph.graph import Graph
+#from eglhandler.src.graph.graph import Graph
 
 #from .src.navis.navis_gui import NavisGui
 #from .src.parser.pdf_parser import booking_info
-from eglhandler.src.parser.parser_functions import (
+"""from eglhandler.src.parser.parser_functions import (
     get_value_in_rect,
     get_container_amount,
     check_revised_status,
@@ -20,10 +20,9 @@ from eglhandler.src.parser.parser_functions import (
     extract_final_pod,
     trim_date_string,
     ocean_vessel_and_voy,
-    cfg_to_dict,
     map_from_dict,
     navis_voyage
-)
+)"""
 #import src.parser.parser_functions as parser_functions
 
 
