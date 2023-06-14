@@ -108,9 +108,5 @@ def voyage_does_not_exist(data: dict, db_file: str) -> None:
     # Updates column 'booking_in_navis' for this booking number to 0 (False) in database
     sql = SqliteDB(db_file)
     sql.update_booking(data, booking_in_navis=False)
-            
-
-if __name__ == '__main__':
-    pass
-
+    
 

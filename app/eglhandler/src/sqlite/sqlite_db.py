@@ -1,3 +1,4 @@
+import inspect
 import logging
 import sqlite3
 from datetime import datetime, timedelta
@@ -33,10 +34,14 @@ class SqliteDB:
         :return: Connection object or None
         """
         try:
-            self.conn = sqlite3.connect(self.db_file)
+            with self.conn:
+                self.conn = sqlite3.connect(self.db_file)
             return self.conn
+        
         except sqlite3.Error as e:
             logging.error(e)
+            print(f"Class: {self.__class__.__name__}, Function: {inspect.stack()[0].function}", "\n",
+                  f"Error: {e}")
         return None
     
     
@@ -77,10 +82,14 @@ class SqliteDB:
         );'''
 
         try:
-            cur = self.conn.cursor()
-            cur.execute(sql_table)
+            with self.conn as conn:
+                cur = conn.cursor()
+                cur.execute(sql_table)
+    
         except sqlite3.Error as e:
             logging.error(e)
+            print(f"Class: {self.__class__.__name__}, Function: {inspect.stack()[0].function}", "\n",
+                  f"Error: {e}")
 
 
     def create_booking(self, booking_dict: dict) -> None:
@@ -95,14 +104,16 @@ class SqliteDB:
         VALUES(
             {', '.join(f"'{value}'" for value in booking_dict.values())}
             );'''
-        
-        cur = self.conn.cursor()
 
         try:
-            cur.execute(sql_booking)
-            self.conn.commit()
+            with self.conn as conn:
+                cur = conn.cursor()
+                cur.execute(sql_booking)
+            
         except sqlite3.Error as e:
             logging.error(e)
+            print(f"Class: {self.__class__.__name__}, Function: {inspect.stack()[0].function}", "\n",
+                  f"Error: {e}")
 
 
     def _select_sql_row_data(self) -> dict:
@@ -114,11 +125,16 @@ class SqliteDB:
         sql_select = f'''SELECT * FROM {self.table_name}
         WHERE {self.column} = {self.booking_dict[self.column]}'''
 
-        cur = self.conn.cursor()
         try:
-            return cur.execute(sql_select).fetchone()
+            with self.conn as conn:
+                cur = conn.cursor()
+                row_data = cur.execute(sql_select).fetchone()            
+            return row_data
+        
         except sqlite3.Error as e:
             logging.error(e)
+            print(f"Class: {self.__class__.__name__}, Function: {inspect.stack()[0].function}", "\n",
+                  f"Error: {e}")
         return None
 
 
@@ -137,7 +153,12 @@ class SqliteDB:
 
         sql_row_data = self._select_sql_row_data()
 
-
+        # Do not want to overwrite 'tod' and 'navis_voy' if it exists in Db but not in booking_dict
+        if booking_dict.get('tod') is None or len(booking_dict.get('tod')) == 0:
+            if sql_row_data[8] is not None or len(sql_row_data[8]) > 0:
+                booking_dict['navis_voy'] = sql_row_data[6]
+                booking_dict['tod'] = sql_row_data[8]
+                
         bool_dict = {}
         for sql_value, booking_key in zip(sql_row_data, booking_dict.keys()):
             if sql_value == booking_dict.get(booking_key):
@@ -145,27 +166,35 @@ class SqliteDB:
             else:
                 bool_dict[booking_key] = True
         
-        booking_dict['pdf_name'] = f"{sql_row_data[22]}, {booking_dict.get('pdf_name')}"
-
         # If argument booking_in_navis is False then change to 0
         if not booking_in_navis:
             booking_dict['booking_in_navis'] = 0
+        # If booking_in_navis is true then do not increment pdf name string in sqlite
+        # as it may cause exponential growth of pdf name string
+        else:
+            booking_dict['pdf_name'] = f"{sql_row_data[22]}, {booking_dict.get('pdf_name')}"
 
         sql_update = f"UPDATE {self.table_name} SET " + ', '.join(
             f"{key}=?" for key in booking_dict.keys()) + f" WHERE {column}=?"
-
-        cur = self.conn.cursor()
+        #cur = self.conn.cursor()
+        
         try:
-            cur.execute(sql_update, tuple(booking_dict.values()) + (booking_dict[column],))
-            self.conn.commit()
+            with self.conn as conn:
+                cur = conn.cursor()
+                cur.execute(sql_update, tuple(booking_dict.values()) + (booking_dict[column],))
+            
             return bool_dict
+        
         except sqlite3.Error as e:
             logging.error(e)
+            print(f"Class: {self.__class__.__name__}, Function: {inspect.stack()[0].function}", "\n",
+                  f"Error: {e}")
         return None
     
     
     def update_booking_with_cancellation(self, booking_dict:dict, column: str='booking_no') -> None:
         """
+        TODO: docstring
         """
 
         self.column = column
@@ -181,16 +210,20 @@ class SqliteDB:
 
         sql_update = f"UPDATE {self.table_name} SET revised_no=?, cancellation =?, pdf_name=? WHERE {column} = ?"
         
-        cur = self.conn.cursor()
         try:
-            cur.execute(sql_update, (revised_no, booking_dict['cancellation'], booking_dict['pdf_name'], booking_dict[column],))
-            self.conn.commit()
+            with self.conn as conn:
+                cur = conn.cursor()
+                cur.execute(sql_update, (revised_no, booking_dict['cancellation'], booking_dict['pdf_name'], booking_dict[column],))
+            
         except sqlite3.Error as e:
             logging.error(e)
+            print(f"Class: {self.__class__.__name__}, Function: {inspect.stack()[0].function}", "\n",
+                  f"Error: {e}")
 
 
     def update_booking_even_if_lower_revised_no(self, booking_dict:dict, column: str='booking_no') -> None:
-        """ TODO
+        """
+        TODO: docstring
         """
 
         self.column = column
@@ -207,16 +240,20 @@ class SqliteDB:
         sql_update = f'''
         UPDATE {self.table_name} SET pdf_name=? WHERE {column}=?'''
         
-        cur = self.conn.cursor()
         try:
-            cur.execute(sql_update, (booking_dict['pdf_name'], booking_dict[column],))
-            self.conn.commit()
+            with self.conn as conn:
+                cur = conn.cursor()
+                cur.execute(sql_update, (booking_dict['pdf_name'], booking_dict[column],))
+            
         except sqlite3.Error as e:
             logging.error(e)
+            print(f"Class: {self.__class__.__name__}, Function: {inspect.stack()[0].function}", "\n",
+                  f"Error: {e}")
 
 
     def when_cancellation_exists_in_db(self, booking_dict:dict, column: str='booking_no') -> None:
-        """ TODO
+        """
+        TODO: docstring
         """
 
         self.column = column
@@ -235,10 +272,14 @@ class SqliteDB:
         
         cur = self.conn.cursor()
         try:
-            cur.execute(sql_update, (booking_dict['revised_no'], booking_dict['pdf_name'], booking_dict[column],))
-            self.conn.commit()
+            with self.conn as conn:
+                cur = conn.cursor()
+                cur.execute(sql_update, (booking_dict['revised_no'], booking_dict['pdf_name'], booking_dict[column],))
+            
         except sqlite3.Error as e:
             logging.error(e)
+            print(f"Class: {self.__class__.__name__}, Function: {inspect.stack()[0].function}", "\n",
+                  f"Error: {e}")
     
 
     def get_booking_data(self, booking: str|dict, column: str='booking_no') -> dict:
@@ -276,12 +317,16 @@ class SqliteDB:
             ADD COLUMN {column} {type};
             '''
 
-        cur = self.conn.cursor()
+
         try:
-            cur.execute(sql_add_columns)
-            self.conn.commit()
+            with self.conn as conn:
+                cur = conn.cursor()
+                cur.execute(sql_add_columns)
+            
         except sqlite3.Error as e:
             logging.error(e)
+            print(f"Class: {self.__class__.__name__}, Function: {inspect.stack()[0].function}", "\n",
+                  f"Error: {e}")
 
     
     def update_values_in_column(self, column: str, value: str, where_column: str=None,
@@ -300,12 +345,15 @@ class SqliteDB:
         if where_column is not None and where_value is not None:
             sql_update += f''' WHERE {where_column} = {where_value}'''
         
-        cur = self.conn.cursor()
         try:
-            cur.execute(sql_update)
-            self.conn.commit()
+            with self.conn as conn:
+                cur = conn.cursor()
+                cur.execute(sql_update)
+
         except sqlite3.Error as e:
             logging.error(e)
+            print(f"Class: {self.__class__.__name__}, Function: {inspect.stack()[0].function}", "\n",
+                  f"Error: {e}")
 
 
     def _get_list_where_values_not_in_database(self, navis_voy: bool=None, terminal: bool=None) -> list:
@@ -336,11 +384,16 @@ class SqliteDB:
 
         else: return None
     
-        cur = self.conn.cursor()
         try:
-            return cur.execute(sql).fetchall()
+            with self.conn as conn:
+                cur = conn.cursor()
+                db_list = cur.execute(sql).fetchall()
+            return db_list
+        
         except sqlite3.Error as e:
             logging.error(e)
+            print(f"Class: {self.__class__.__name__}, Function: {inspect.stack()[0].function}", "\n",
+                  f"Error: {e}")
 
 
     def get_bookings_where_navis_voy_not_in_database(self) -> list:
@@ -359,12 +412,15 @@ class SqliteDB:
         sql = f'''
         ALTER TABLE {self.table_name} DROP COLUMN {column}'''
 
-        cur = self.conn.cursor()
         try:
-            cur.execute(sql)
-            self.conn.commit()
+            with self.conn as conn:
+                cur = conn.cursor()
+                cur.execute(sql)
+            
         except sqlite3.Error as e:
             logging.error(e)
+            print(f"Class: {self.__class__.__name__}, Function: {inspect.stack()[0].function}", "\n",
+                  f"Error: {e}")
 
 
     def delete_booking(self, booking: str, column: str='booking_no') -> None:
@@ -379,12 +435,15 @@ class SqliteDB:
         WHERE {column} = {booking}
         '''
 
-        cur = self.conn.cursor()
         try:
-            cur.execute(sql_delete)
-            self.conn.commit()
+            with self.conn as conn:
+                cur = conn.cursor()
+                cur.execute(sql_delete) 
+            
         except sqlite3.Error as e:
             logging.error(e)
+            print(f"Class: {self.__class__.__name__}, Function: {inspect.stack()[0].function}", "\n",
+                  f"Error: {e}")
         
 
     def delete_all_bookings(self) -> None:
@@ -394,10 +453,13 @@ class SqliteDB:
         DELETE FROM {self.table_name}
         '''
 
-        cur = self.conn.cursor()
         try:
-            cur.execute(sql_delete)
-            self.conn.commit()
+            with self.conn as conn:
+                cur = conn.cursor()
+                cur.execute(sql_delete)
+            
         except sqlite3.Error as e:
             logging.error(e)
+            print(f"Class: {self.__class__.__name__}, Function: {inspect.stack()[0].function}", "\n",
+                  f"Error: {e}")
 

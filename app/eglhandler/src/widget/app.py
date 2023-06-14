@@ -192,7 +192,7 @@ class EGLApp:
 
 
     def run_no_voy_with_threading(self) -> None:
-        executor = concurrent.futures.ThreadPoolExecutor()
+        executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
         executor.submit(self._run_no_voy_navis_program)
         executor.shutdown(wait=False)
 

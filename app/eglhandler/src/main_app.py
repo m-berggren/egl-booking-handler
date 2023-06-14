@@ -16,7 +16,6 @@ def run_application():
     egl: EGL = EGL(config, headers)
     email_count= egl.count_emails_in_folder()
     database = r"app\eglhandler\sqlite\egl_sqlite.db"
-
     app = EGLApp(config, database)
     app.write_out_booking_count(email_count)
     app.run_widget()
