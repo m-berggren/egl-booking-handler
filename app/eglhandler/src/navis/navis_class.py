@@ -57,15 +57,16 @@ class NavisGUI:
         INITIAL_LOGO_REGION = tuple([int(i) for i in self.region.get('initial_navis_logo')])  #x, y, width, height
         CONNECTION_ERROR = self.png['startup'].get('connection_error')
 
-        # Check if Navis window is already open.
+        # Check if Navis window is already open
         if self._grab_navis_window():
             navis_logo_found = pyautogui.locateOnScreen(
                 image=NAVIS_LOGO,
                 region=LOGO_REGION,
                 minSearchTime=2)
 
-            # Belt and braces check to make sure Navis window is indeed found.
+            # Belt and braces check to make sure Navis window is indeed found
             if navis_logo_found:
+                # Means all is OK, Navis window is open and in front
                 return
             
             # Looking for error message
@@ -75,28 +76,36 @@ class NavisGUI:
                 )
             
             if error_found:
+                print('\nError found.\nRestarting Navis...')
                 x, y = error_found
                 pyautogui.click(x + 289, y + 41, duration=0.5)
-                time.sleep(1)
+                time.sleep(2)  # Let error window disappear
+                
                 self._run_navis()
+                self._search_navis_startup_logo(NAVIS_LOGO, INITIAL_LOGO_REGION)
                 return
 
-        # If Navis window is not open, start Navis.
+        # If Navis window is not open, start Navis
         else:
+            print('\nNavis not running.\nStarting Navis...')
             self._run_navis()
+            self._search_navis_startup_logo(NAVIS_LOGO, INITIAL_LOGO_REGION)
 
-            # Look 30s for Navis window to open
-            navis_logo_found = pyautogui.locateOnScreen(
-                image=NAVIS_LOGO,
-                region=INITIAL_LOGO_REGION,
-                minSearchTime=60) # Give Navis window time to load,
-                # it can be PAINFULLY slow.
             
-            if navis_logo_found:
-                self._grab_navis_window()
-                return
-            else:
-                raise Exception("Navis window not found.")
+    def _search_navis_startup_logo(self, navis_logo, initial_logo_region) -> None:
+        # Look 60s for Navis window to open
+        navis_logo_found = pyautogui.locateOnScreen(
+            image=navis_logo,
+            region=initial_logo_region,
+            minSearchTime=60) # Give Navis window time to load,
+            # it can be PAINFULLY slow.
+        
+        if navis_logo_found:
+            self._grab_navis_window()
+            return
+        else:
+            raise Exception("Navis window not found.")
+        
 
     def _run_navis(self) -> None:
         """Starts Navis program.
@@ -104,8 +113,6 @@ class NavisGUI:
 
         Calls '_log_in_to_navis' function.
         """
-
-        print("\nNavis window not found, starting program...")
 
         NAVIS_LOGIN_SCREEN = self.png['startup'].get('navis_login')
         NAVIS_REGION = tuple([int(i) for i in self.region.get('navis_login')])  #x, y, width, height
@@ -116,7 +123,7 @@ class NavisGUI:
         navis_login_screen_found = pyautogui.locateOnScreen(
             image=NAVIS_LOGIN_SCREEN,
             region=NAVIS_REGION,
-            minSearchTime=20  # Give Navis login window time to load.
+            minSearchTime=30  # Give Navis login window time to load.
             )
         if navis_login_screen_found:
             self._log_in_to_navis()

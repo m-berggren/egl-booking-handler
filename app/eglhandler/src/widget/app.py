@@ -1,6 +1,5 @@
 import builtins
 import concurrent.futures
-import threading
 import tkinter as tk
 from tkinter import ttk, messagebox
 
@@ -17,7 +16,6 @@ class EGLApp:
     ms_delay: int
     style: ttk.Style
     content: ttk.Frame
-    thread: threading.Thread
     window: tk.Tk
     bookings: dict
 
@@ -35,7 +33,6 @@ class EGLApp:
         self.ms_delay = config['widget'].get('ms_delay')
         self.style = None
         self.content = None
-        self.thread = None
 
         # Run functions to create the widgets.
         self.window = self.window()
@@ -86,7 +83,7 @@ class EGLApp:
             text="Hantera bokningar",
             width=30,
             style="Accent.TButton",
-            command=self._run_main_program
+            command=self.run_main_program_with_threading
         )
         txt = tk.Text(
             self.content,
@@ -126,7 +123,8 @@ class EGLApp:
             self.content,
             text="Hantera markerade bokningar",
             width=30, style="Accent.TButton",
-            command=self._run_no_voy_navis_program
+            command=self.run_no_voy_with_threading
+            #command=self._run_no_voy_navis_program
         )
         tree = ttk.Treeview(
             self.content,
@@ -170,7 +168,12 @@ class EGLApp:
 
         return {'label1': lbl_1, 'label2': lbl_2, 'tree': tree}
     
+    def run_main_program_with_threading(self) -> None:
+        executor = concurrent.futures.ThreadPoolExecutor()
+        executor.submit(self._run_main_program)
+        executor.shutdown(wait=False)
 
+        
     def _run_main_program(self) -> None:
         """Run the main program that handles the bookings.
 
@@ -182,32 +185,26 @@ class EGLApp:
 
         self.bookings.get('button').config(state=tk.DISABLED)
         self._delete_text()
+        main.run_main_program()
 
-        self.thread = threading.Thread(
-            target=main.run_main_program()
-            )
+        self.bookings.get('button').config(state=tk.NORMAL)
+        print("Done!")
 
-        """self.thread = threading.Thread(
-            target=main.run_main_program,
-            daemon=True
-            )"""
-        
-        self.thread.start()
 
-        """with concurrent.futures.ThreadPoolExecutor() as executor:
-            executor.submit(main.run_main_program, range(1))"""
+    def run_no_voy_with_threading(self) -> None:
+        executor = concurrent.futures.ThreadPoolExecutor()
+        executor.submit(self._run_no_voy_navis_program)
+        executor.shutdown(wait=False)
 
-        self.window.after(self.ms_delay, self._check_if_ready)
 
-    
     def _run_no_voy_navis_program(self) -> tuple:
         """Run the program that handles the bookings without voyages in Navis. """
-
+        
         if self._get_values_from_no_navis_bookings() == '':
             messagebox.showinfo(
                 "Ingen bokning vald",
                 "Markera en eller flera bokningar i listan."
-            )
+                )
             return
 
         self.no_voy.get('button').configure(state=tk.DISABLED)
@@ -215,20 +212,9 @@ class EGLApp:
 
         bookings = self._get_values_from_no_navis_bookings()
         bookings_list = bookings.split(', ')
-
-        # Run selected bookigns from the treeview and inserts them in Navis.
-        self.thread = threading.Thread(
-             target=main.run_missing_bookings_in_navis(bookings_list)
-        )
-
-        """self.thread = threading.Thread(
-            target=main.run_missing_bookings_in_navis,
-            args=[bookings_list],
-            daemon=True
-            )"""  # Function with bookings as argument
-        self.thread.start()
-
-        self.window.after(self.ms_delay, self._check_if_ready)
+        main.run_missing_bookings_in_navis(bookings_list)
+        self.no_voy.get('button').config(state=tk.NORMAL)
+        print("Done")
 
 
     def _get_values_from_no_navis_bookings(self) -> tuple:
@@ -264,7 +250,7 @@ class EGLApp:
 
 
     def _check_if_ready(self) -> None:
-        if self.thread.is_alive():
+        if self.executor.is_alive():
             print('Waiting for thread to finish...')
             #return
         else:
@@ -366,7 +352,7 @@ class EGLApp:
         self.email_count = booking_count
          
 
-    def refresh_window(self, event=None) -> None:
+    def refresh_window(self) -> None:
         self.window.destroy()
         from eglhandler.src import main_app
         main_app.run_application()

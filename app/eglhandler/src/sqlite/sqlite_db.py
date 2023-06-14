@@ -39,6 +39,7 @@ class SqliteDB:
             logging.error(e)
         return None
     
+    
     def _check_table_name(self, table_name: str) -> None:
         """Check if table name is set. If not, raise error.
 

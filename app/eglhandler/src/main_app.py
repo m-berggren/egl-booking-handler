@@ -1,12 +1,12 @@
-import concurrent.futures
 import yaml
 
 from eglhandler.src.widget.app import EGLApp
 from eglhandler.src.graph.graph import Graph, EGL
 
 def run_application():
-    """ Main function"""  
-    with open('app\eglhandler\config.yaml', 'r') as _f:
+    """ Main function"""
+
+    with open(r"app\eglhandler\config.yaml", 'r') as _f:
         config = yaml.safe_load(_f)
 
     """ Set up graph- and egl objects."""

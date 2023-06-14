@@ -1,0 +1,1 @@
+pyinstaller main_app.py --onefile --name Evergreen-Booking-Handler-Executable --windowed

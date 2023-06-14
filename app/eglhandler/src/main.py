@@ -51,7 +51,7 @@ def run_main_program():
     email_count = egl.count_emails_in_folder()
 
     if email_count == 0:
-        print("\nNo emails found in folder.")
+        print("No email(s) found in folder.")
         return
     
     print(f"Processing {email_count} email(s)...\n")
@@ -207,7 +207,7 @@ def run_missing_bookings_in_navis(booking_list: list):
         # If this is true it means voyage is not found in Navis
         if voyage_does_not_exist:
             print(f"{booking} has not been created.")
-            print(f"{len(booking_list) - (num + 1)} e-mail(s) remaining.")
+            print(f"{len(booking_list) - (num + 1)} booking(s) remaining.")
             continue
         else:
             # This will update the booking at column booking_in_navis to 1 (True)
