@@ -13,23 +13,33 @@ def create_booking(data: dict, config: dict, database_file: str) -> None:
     :param data: dict with booking data
     """
 
+    # Uses return None to alert main function that voyage was not found.
+    # Otherwise returns True
+
     navis = NavisGUI(config)
 
-    if navis.voyage_exist(data['navis_voy']):
-        booking_exist = navis.booking_exist(data['booking_no'])
-        if booking_exist:
-            navis.click_edit_booking(booking_exist)
-
-            # Force update booking does not add hazards at the moment.
-            # TODO: add hazards to force update booking
-            navis.force_update_booking(data)
-        else:
-            navis.add_booking(data)
-            navis.close_booking_window()
-    else:
+    # Check if voyage exist
+    voyage_exists = navis.voyage_exist(data['navis_voy'])
+    if  voyage_exists is None:
         voyage_does_not_exist(data, database_file)
         # Used in main function to alert that voyage was not found
+        return None
+
+    # Check if booking exist
+    booking_exists = navis.booking_exist(data['booking_no'])
+    if booking_exists is None:
+        navis.add_booking(data)
+        navis.close_booking_window()
         return True
+
+    navis.click_edit_booking(booking_exists)
+
+    # Force update booking does not add hazards at the moment.
+    # TODO: add hazards to force update booking
+    navis.force_update_booking(data)
+
+    return True
+
 
 def update_booking(data: dict, bool_dict: dict, config, database_file: str) -> None:
     """ Update booking

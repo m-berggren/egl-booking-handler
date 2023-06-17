@@ -1,0 +1,279 @@
+from pydantic import BaseModel
+
+""" Pydantic dataclass to store dict from config file."""
+
+class NavisLogin(BaseModel):
+    user: str
+    password: str
+
+class Gui(BaseModel):
+    pause: int
+    failsafe: bool
+   
+class Startup(BaseModel):
+    navis_logo: str
+    navis_login: str
+    
+class PngBooking(BaseModel):
+    active_vessel: str
+    add: str
+    add_equ: str
+    booking_exist: str
+    close_window: str
+    export: str
+    export_field: str
+    export_selected: str
+    delete_booking: str
+    line_operator_box: str
+    port_of_discharge_box: str
+    save_window: str
+    tod_booking_window: str
+    vessels_active: str
+    vessels_active_field: str
+    vessels_active_selected: str
+    vessel_visit_box: str
+    vessel_visit_booking_window: str
+
+class PngEquipment(BaseModel):
+    dv20: str
+    dv40: str
+    hc40: str
+    equ_cancel_button: str
+    equ_confirm_cancel: str
+    equ_weight: str
+    equ_window_check: str
+    hazards_button: str
+    hazards_button_add: str
+    hazards_button_add_unno: str
+    hazards_save_button: str
+    hazards_window_check: str
+        
+class ErrorHandling(BaseModel):
+    connection_error: str
+    delete_units_gated_in: str
+    update_less_than_gated_in: str  
+    
+class RegionLogin(BaseModel):
+    navis_logo: list
+    navis_login: list
+
+class Error(BaseModel):
+    units_gated_in: list
+    update_less_than_gated_in: list
+
+class Exist(BaseModel):
+    booking: list
+    booking_field: list
+    vessel: list
+    vessels_and_bookings: list
+    vessels_field: list
+
+class RegionBooking(BaseModel):
+    add_button: list
+    equipment_search: list
+    line_vessel_pod_boxes: list
+    save_or_close: list
+    validate_window: list
+
+class RegionEquipment(BaseModel):
+    add_button: list
+    save: list
+    unit_weight: list
+    validate_window: list
+    hazards_region: list
+
+class File(BaseModel):
+    navis_jnlp: str
+
+class Png(BaseModel):
+    startup: Startup
+    booking: PngBooking
+    equipment: PngEquipment
+    error_handling: ErrorHandling
+
+class Region(BaseModel):
+    login: RegionLogin
+    error: Error
+    exist: Exist
+    booking: RegionBooking
+    equipment: RegionEquipment
+
+class Navis(BaseModel):
+    login: NavisLogin
+    gui: Gui
+    png: Png
+    region: Region
+    file: File
+
+class Config(BaseModel):
+    navis_logo: str
+    navis_logo_region: list
+    navis_login: str
+    navis_login_region: list
+    connection_error: str
+    error_gated_in: str
+    error_gated_in_region: list
+    error_less_than_gated_in: str
+    error_less_than_gated_in_region: list
+    voyage_tab: str
+    voyage_tab_selected: str
+    bookings_tab: str
+    bookings_tab_selected: str
+    vessels_and_booking_region: list
+    voyage_field: str
+    voyage_region: list
+    booking_field: str
+    booking_field_region: list
+    vessel_exist: str
+    vessel_exist_region: list
+    booking_exist: str
+    booking_exist_region: list
+    add_booking: str
+    add_booking_region: list
+    save_booking: str
+    save_booking_region: list
+    image_40hc: str
+    image_40dv: str
+    image_20dv: str
+    equipment_search_region: list
+    add_equipment: str
+    add_equipment_region: list
+    equ_window: str
+    equ_window_region: list
+    save_equipment: str
+    close_window: str
+    save_equipment_region: list
+    equ_weight: str
+    equ_weight_region: list
+    hazards_button: str
+    hazards_region: list
+    line_operator_box: str
+    vessel_visit_box: str
+    line_vessel_pod_boxes: list
+    port_of_discharge_box: str
+    hazards_button_add: str
+    hazards_button_add_unno: str
+    hazards_window_check: str
+    hazards_save_button: str
+    delete_booking: str
+    equ_cancel_button: str
+    equ_confirm_cancel: str
+    vessel_visit_booking_window: str
+    tod_booking_window: str
+    
+
+def transform_navis_dataclass_to_dict(navis: Navis) -> dict:
+    """ Transform Navis dataclass to dict.
+    
+    These are valid keys for the dict:
+        - navis_logo
+        - navis_login
+        - navis_logo_region
+        - navis_login_region
+        - connection_error
+        - error_gated_in
+        - error_gated_in_region
+        - error_less_than_gated_in
+        - error_less_than_gated_in_region
+        - voyage_tab
+        - voyage_tab_selected
+        - bookings_tab
+        - bookings_tab_selected
+        - vessels_and_booking_region
+        - voyage_field
+        - voyage_region
+        - booking_field
+        - booking_field_region
+        - vessel_exist
+        - vessel_exist_region
+        - booking_exist
+        - booking_exist_region
+        - add_booking
+        - add_booking_region
+        - save_booking
+        - save_booking_region
+        - image_40hc
+        - image_40dv
+        - image_20dv
+        - equipment_search_region
+        - add_equipment
+        - add_equipment_region
+        - equ_window
+        - equ_window_region
+        - save_equipment
+        - close_window
+        - save_equipment_region
+        - equ_weight
+        - equ_weight_region
+        - hazards_button
+        - hazards_region
+        - line_opeartor_box
+        - vessel_visit_box
+        - line_vessel_pod_boxes
+        - port_of_discharge_box
+        - hazards_button_add
+        - hazards_button_add_unno
+        - hazards_window_check
+        - hazards_save_button
+        - delete_booking
+        - equ_cancel_button
+        - equ_confirm_cancel
+        - vessel_visit_booking_window
+        - tod_booking_window
+    """
+    return {
+        'navis_logo': navis.png.startup.navis_logo,
+        'navis_login': navis.png.startup.navis_login,
+        'navis_logo_region': navis.region.login.navis_logo,
+        'navis_login_region': navis.region.login.navis_login,
+        'connection_error': navis.png.error_handling.connection_error,
+        'error_gated_in': navis.png.error_handling.delete_units_gated_in,
+        'error_gated_in_region': navis.region.error.units_gated_in,
+        'error_less_than_gated_in': navis.png.error_handling.update_less_than_gated_in,
+        'error_less_than_gated_in_region': navis.region.error.update_less_than_gated_in,
+        'voyage_tab': navis.png.booking.vessels_active,
+        'voyage_tab_selected': navis.png.booking.vessels_active_selected,
+        'bookings_tab': navis.png.booking.export,
+        'bookings_tab_selected': navis.png.booking.export_selected,
+        'vessels_and_booking_region': navis.region.exist.vessels_and_bookings,
+        'voyage_field': navis.png.booking.vessels_active_field,
+        'voyage_region': navis.region.exist.vessels_field,
+        'booking_field': navis.png.booking.export_field,
+        'booking_field_region': navis.region.exist.booking_field,
+        'vessel_exist': navis.png.booking.active_vessel,
+        'vessel_exist_region': navis.region.exist.vessel,
+        'booking_exist': navis.png.booking.booking_exist,
+        'booking_exist_region': navis.region.exist.booking,
+        'add_booking': navis.png.booking.add,
+        'add_booking_region': navis.region.booking.add_button,
+        'save_booking': navis.png.booking.save_window,
+        'save_booking_region': navis.region.booking.save_or_close,
+        'image_40hc': navis.png.equipment.hc40,
+        'image_40dv': navis.png.equipment.dv40,
+        'image_20dv': navis.png.equipment.dv20,
+        'equipment_search_region': navis.region.booking.equipment_search,
+        'add_equipment': navis.png.booking.add_equ,
+        'add_equipment_region': navis.region.equipment.add_button,
+        'equ_window': navis.png.equipment.equ_window_check,
+        'equ_window_region': navis.region.equipment.validate_window,
+        'save_equipment': navis.png.booking.save_window,
+        'close_window': navis.png.booking.close_window,
+        'save_equipment_region': navis.region.equipment.save,
+        'equ_weight': navis.png.equipment.equ_weight,
+        'equ_weight_region': navis.region.equipment.unit_weight,
+        'hazards_button': navis.png.equipment.hazards_button,
+        'hazards_region': navis.region.equipment.hazards_region,
+        'line_operator_box': navis.png.booking.line_operator_box,
+        'vessel_visit_box': navis.png.booking.vessel_visit_box,
+        'line_vessel_pod_boxes': navis.region.booking.line_vessel_pod_boxes,
+        'port_of_discharge_box': navis.png.booking.port_of_discharge_box,
+        'hazards_button_add': navis.png.equipment.hazards_button_add,
+        'hazards_button_add_unno': navis.png.equipment.hazards_button_add_unno,
+        'hazards_window_check': navis.png.equipment.hazards_window_check,
+        'hazards_save_button': navis.png.equipment.hazards_save_button,
+        'delete_booking': navis.png.booking.delete_booking,
+        'equ_cancel_button': navis.png.equipment.equ_cancel_button,
+        'equ_confirm_cancel': navis.png.equipment.equ_confirm_cancel,
+        'vessel_visit_booking_window': navis.png.booking.vessel_visit_booking_window,
+        'tod_booking_window': navis.png.booking.tod_booking_window,
+    }

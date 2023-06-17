@@ -34,8 +34,8 @@ class SqliteDB:
         :return: Connection object or None
         """
         try:
-            with self.conn:
-                self.conn = sqlite3.connect(self.db_file)
+            with sqlite3.connect(self.db_file) as conn:
+                self.conn = conn
             return self.conn
         
         except sqlite3.Error as e:

@@ -4,40 +4,51 @@ import time
 from pathlib import Path
 
 import pyautogui
-from pywinauto import Desktop, mouse
-
-from eglhandler.src.navis.navis_dataclass import (
-    Navis, Config, transform_navis_dataclass_to_dict)
+import win32gui
 
 class NavisGUI:
-    """ Class for Navis GUI functions."""
-    
+    """Class for Navis GUI functions."""
+
     def __init__(self, config:dict) -> None:
-        self.navis = Navis(**config['navis'])
-        self.config = Config(**transform_navis_dataclass_to_dict(self.navis))
-        
-        pyautogui.PAUSE = self.navis.gui.pause
-        pyautogui.FAILSAFE = self.navis.gui.failsafe
+        self.config = config.get('navis')
+        self.png = self.config.get('png')
+        self.coordinate = self.config.get('coordinate')
+        self.region = self.config.get('region')
+        self.login = self.config.get('login')
+        self.file = self.config.get('file')
+
+        # Sets the overall delay between every PyAutoGUI call.
+        pyautogui.PAUSE = self.config['gui'].get('pause')
+
+        # Sets a failsafe for PyAutoGUI. If the mouse cursor is in the upper left corner
+        pyautogui.FAILSAFE = self.config['gui'].get('failsafe')
         
         #Checks if Navis is running. If not it will start and log in
         self.get_navis()
-
-
+            
+            
     def _grab_navis_window(self):
-        """ Sets Navis window in front of all other windows.
+        """Sets Navis window in front of all other windows.
         Called by 'get_navis' function.
         
         :return: True if Navis window is found, False if not.
         """
 
-        windows = Desktop(backend='win32').windows()
-        for window in windows:
-            if "navis n4" in window.window_text().lower():
-                window.set_focus()
-                window.move_window(x=500, y=0, width=int(1425), height=1045)
-                mouse.move(coords=(int(1920/4), int(1080/2)))
-                return True
+        # this solutions was found here:
+        # https://www.blog.pythonlibrary.org/2014/10/20/pywin32-how-to-bring-a-window-to-front/
 
+        def windowEnumerationHandler(hwnd, top_windows):
+            top_windows.append((hwnd, win32gui.GetWindowText(hwnd)))
+        top_windows = []
+        win32gui.EnumWindows(windowEnumerationHandler, top_windows)
+        for window in top_windows:
+            if "navis n4" in window[1].lower():
+                # Pressing 'alt' appears to make the program more stable.
+                pyautogui.press("alt")
+                win32gui.ShowWindow(window[0],5)
+                win32gui.ShowWindow(window[0],9)
+                win32gui.SetForegroundWindow(window[0])
+                return True
         return False
     
 
@@ -48,81 +59,48 @@ class NavisGUI:
         :return: True if Navis window is found, False if not.
         """
 
+        NAVIS_LOGO = self.png['startup'].get('navis_logo')
+        LOGO_REGION = tuple([int(i) for i in self.region.get('navis_logo')])  #x, y, width, height
+        CONNECTION_ERROR = self.png['startup'].get('connection_error')
 
-        # Check if Navis window is already open
+        # Check if Navis window is already open.
         if self._grab_navis_window():
+            navis_logo_found = pyautogui.locateOnScreen(
+                image=NAVIS_LOGO,
+                region=LOGO_REGION,
+                minSearchTime=2)
 
+            # Belt and braces check to make sure Navis window is indeed found.
+            if navis_logo_found:
+                return
+            
             # Looking for error message
-            error_found = pyautogui.locateOnScreen(
-                image=self.config.connection_error,
-                region=self.config.navis_logo_region,
-                minSearchTime=0.5,
-                grayscale=True,
-                confidence=0.8
+            error_found = pyautogui.locateCenterOnScreen(
+                image=CONNECTION_ERROR,
+                minSearchTime=2
                 )
             
             if error_found:
                 x, y = error_found
                 pyautogui.click(x + 289, y + 41, duration=0.5)
-                time.sleep(2)  # Let error window disappear
+                time.sleep(1)
+                self._run_navis()
+                return
 
-                self.run_navis()
-
-                navis_logo_found = pyautogui.locateOnScreen(
-                    image=self.config.navis_logo,
-                    region=self.config.navis_logo_region,
-                    minSearchTime=60,
-                    grayscale=True,
-                    confidence=0.8
-                    )
-                if navis_logo_found is None:
-                    print('Navis window not found')
-                    exit()
-                else:
-                    self._grab_navis_window()
-
-            
-            login_screen_found = pyautogui.locateOnScreen(
-                image=self.config.navis_login,
-                region=self.config.navis_login_region,
-                minSearchTime=30,
-                grayscale=True,
-                confidence=0.8
-                )
-            
-            if login_screen_found:
-                self._log_in_to_navis()
-
-                navis_logo_found = pyautogui.locateOnScreen(
-                    image=self.config.navis_logo,
-                    region=self.config.navis_logo_region,
-                    minSearchTime=60,
-                    grayscale=True,
-                    confidence=0.8
-                    )
-            
-            navis_logo_found = pyautogui.locateOnScreen(
-                image=self.config.navis_logo,
-                region=self.config.navis_logo_region,
-                minSearchTime=1,
-                grayscale=True,
-                confidence=0.8
-                )
-
-            # Belt and braces check to make sure Navis window is indeed found
-            if navis_logo_found is None:
-                print('Navis window not found.')
-                exit()
-            
-        # If Navis window is not open, start Navis
+        # If Navis window is not open, start Navis.
         else:
-            print('\nNavis not running.\nStarting Navis...')
             self._run_navis()
-            self._search_navis_startup_logo(self.config.navis_logo)
-            self._grab_navis_window()
-        
 
-
+            # Look 30s for Navis window to open
+            navis_logo_found = pyautogui.locateOnScreen(
+                image=NAVIS_LOGO,
+                region=LOGO_REGION,
+                minSearchTime=30) # Give Navis window time to load.
+            
+            if navis_logo_found:
+                return
+            else:
+                raise Exception("Navis window not found.")
 
     def _run_navis(self) -> None:
         """Starts Navis program.
@@ -130,21 +108,23 @@ class NavisGUI:
 
         Calls '_log_in_to_navis' function.
         """
-        
-        navis = self.navis.file.navis_jnlp
+
+        print("\nNavis window not found, starting program...")
+
+        NAVIS_LOGIN_SCREEN = self.png['startup'].get('navis_login')
+        NAVIS_REGION = tuple([int(i) for i in self.region.get('navis_login')])  #x, y, width, height
+
+        navis = os.path.join(Path.home(), self.file.get('navis_jnlp'))
         os.startfile(navis)
 
-        find_login_screen = self._find_login_screen(
-            login_screen=self.config.navis_login,
-            region=self.config.navis_login_region,
-            min_search_time=30)
-    
-        if find_login_screen:
+        navis_login_screen_found = pyautogui.locateOnScreen(
+            image=NAVIS_LOGIN_SCREEN,
+            region=NAVIS_REGION,
+            minSearchTime=20  # Give Navis login window time to load.
+            )
+        if navis_login_screen_found:
             self._log_in_to_navis()
-        else:
-            print(f"\nNavis login screen not found.")
-            exit()
-        
+
 
     def _log_in_to_navis(self) -> None:
         """Logs in to Navis.
@@ -152,80 +132,42 @@ class NavisGUI:
         """
         pyautogui.PAUSE = 0.1
 
-        pyautogui.write(self.navis.login.user)
+        pyautogui.write(self.login.get('user'))
         pyautogui.press('tab')
-        pyautogui.write(self.navis.login.password)
+        pyautogui.write(self.login.get('password'))
         pyautogui.press('enter')
 
-        pyautogui.PAUSE = self.navis.gui.pause
+        pyautogui.PAUSE = self.config['gui'].get('pause')
         
 
     def voyage_exist(self, value: str) -> tuple:
         """Checks if voyage exist in Navis.
         
         :param value: voyage number.
-        """        
+        """
 
-        check_voyage_tab = pyautogui.locateCenterOnScreen(
-            image=self.config.voyage_tab,
-            region=self.config.vessels_and_booking_region,
-            minSearchTime=1,
-            grayscale=True,
-            confidence=0.8
-        )
-        
-        check_voyage_tab_selected = pyautogui.locateCenterOnScreen(
-            image=self.config.voyage_tab_selected,
-            region=self.config.vessels_and_booking_region,
-            minSearchTime=1,
-            grayscale=True,
-            confidence=0.8
-        )
-                
-        if check_voyage_tab:
-            pyautogui.click(check_voyage_tab, duration=0.5)
-        elif check_voyage_tab_selected:
-            pyautogui.click(check_voyage_tab_selected, duration=0.5)
-        else:
-            print(f"'VESSELS ACTIVE' tab not found in Navis.")
-            exit()
+        VOYAGE_TAB = self.coordinate.get('voyage_tab')
+        VOYAGE_FIELD = self.coordinate.get('voyage_field')
+        VOYAGE_REGION = tuple([int(i) for i in self.region.get('voyage')])  #x, y, width, height
+        ACTIVE_VESSEL = self.png['booking'].get('active_vessel')
 
-        voyage_field = pyautogui.locateCenterOnScreen(
-            image=self.config.voyage_field, 
-            region=self.config.voyage_region,
-            minSearchTime=0.5,
-            grayscale=True,
-            confidence=0.8
-        )
-
-        if voyage_field is None:
-            print(f"Error while trying to retrieve field in 'VESSELS ACTIVE'.")
-            exit()
-
-        x, y = voyage_field
-        pyautogui.click(x - 89, y , duration=0.5)
-
+        pyautogui.click(VOYAGE_TAB, duration=0.5)
+        time.sleep(1)
+        pyautogui.click(VOYAGE_FIELD, duration=0.5)
+        time.sleep(1)
         with pyautogui.hold('ctrl'):
             pyautogui.press('a')
-
         pyautogui.press('backspace')
         pyautogui.write(str(value))
         pyautogui.press('enter')
-        time.sleep(4)  # Give Navis time to update,
+        time.sleep(5)  # Give Navis time to update,
         # may find image for wrong voyage otherwise.
 
         coordinate_exist = pyautogui.locateOnScreen(
-            image=self.config.vessel_exist,
-            region= self.config.vessel_exist_region,
-            minSearchTime=0.5,
-            grayscale=True,
-            confidence=0.8
-        )
-        
-        if coordinate_exist is None:
-            print(f'Voyage {value} not found in Navis.')
-            exit()
-
+            image=ACTIVE_VESSEL,
+            region= (300, 200, 500, 300),#VOYAGE_REGION,
+            minSearchTime=1
+            )
         return coordinate_exist
 
 
@@ -235,67 +177,29 @@ class NavisGUI:
         :param value: booking number.
         """
 
-        check_bookings_tab = pyautogui.locateCenterOnScreen(
-            image=self.config.bookings_tab,
-            region=self.config.vessels_and_booking_region,
-            minSearchTime=0.5,
-            grayscale=True,
-            confidence=0.8
-        )
-        check_bookings_tab_selected = pyautogui.locateCenterOnScreen(
-            image=self.config.bookings_tab_selected,
-            region=self.config.vessels_and_booking_region,
-            minSearchTime=0.5,
-            grayscale=True,
-            confidence=0.8
-        )
+        BOOKING_TAB = self.coordinate.get('booking_tab')
+        BOOKING_FIELD = self.coordinate.get('booking_field')
+        BOOKING_REGION = tuple([int(i) for i in self.region.get('booking')])  #x, y, width, height
+        BOOKING_EXIST = self.png['booking'].get('booking_exist')
 
-        if check_bookings_tab is not None:
-            pyautogui.click(check_bookings_tab, duration=0.5)
-        elif check_bookings_tab_selected is not None:
-            pyautogui.click(check_bookings_tab_selected, duration=0.5)
-        else:
-            print("'BOOKINGS EXPORT' tab not found in Navis.")
-            exit()
-
-        time.sleep(0.5)
-
-        booking_field = pyautogui.locateCenterOnScreen(
-            image=self.config.booking_field,
-            region=self.config.booking_field_region,
-            minSearchTime=0.5,
-            grayscale=True,
-            confidence=0.8
-        )
-
-        if booking_field is None:
-            print("'BOOKINGS EXPORT' field not found in Navis.")
-            exit()
-
-        x, y = booking_field
-        pyautogui.click(x - 110, y , duration=0.5)
-
+        pyautogui.click(BOOKING_TAB, duration=0.5)
+        time.sleep(1)
+        pyautogui.click(BOOKING_FIELD, duration=0.5)
+        time.sleep(1)
         with pyautogui.hold('ctrl'):
             pyautogui.press('a')
-            
         pyautogui.press('backspace')
         pyautogui.write(str(value))
         pyautogui.press('enter')
 
-        # Wait so Navis can update
-        time.sleep(3)
+        time.sleep(2)
         
-        # Look for booking if it exists
         coordinate_exist = pyautogui.locateOnScreen(
-            image=self.config.booking_exist,
-            region=self.config.booking_exist_region,
-            minSearchTime=0.5,
-            grayscale=True,
-            confidence=0.8
+            image=BOOKING_EXIST,
+            region=BOOKING_REGION,
+            minSearchTime=1
             )
-
         return coordinate_exist
-    
 
     def add_booking(self, data: dict) -> None:
         """Adds booking to Navis.
@@ -303,38 +207,16 @@ class NavisGUI:
         :param data: dictionary with booking data.
         """
 
-        add_booking_found = pyautogui.locateCenterOnScreen(
-            image=self.config.add_booking,
-            region=self.config.add_booking_region,
-            minSearchTime=0.5,
-            grayscale=True,
-            confidence=0.8
-            )
-        
-        if add_booking_found is None:
-            print("Add booking button not found in Navis.")
-            exit()
-        
-        pyautogui.leftClick(add_booking_found, duration=0.5)
-
-        booking_window_found = pyautogui.locateOnScreen(
-            image=self.config.booking_window,
-            region=self.config.booking_window_region,
-            minSearchTime=10,
-            grayscale=True,
-            confidence=0.8
-            )
-        
-        if booking_window_found is None:
-            print("Booking window not found in Navis.")
-            exit()
+        # [Booking scope] Presses 'Save' to save booking.
+        pyautogui.leftClick(x=1630, y=229, duration=0.5)
+        time.sleep(3)
 
         pyautogui.write(data['booking_no'])
         pyautogui.press('tab')
         time.sleep(1)
 
         pyautogui.write('EGL')
-        time.sleep(2)
+        time.sleep(3)
         pyautogui.press('tab')
         time.sleep(4)
 
@@ -358,20 +240,12 @@ class NavisGUI:
         pyautogui.write('XCL')
         pyautogui.press('tab')
 
-        save_booking_found = pyautogui.locateCenterOnScreen(
-            image=self.config.save_booking,
-            region=self.config.save_booking_region,
-            minSearchTime=1,
-            grayscale=True,
-            confidence=0.8
-        )
-
-        if save_booking_found is None:
-            print("Save booking button not found in Navis.")
-            exit()
-
-        pyautogui.leftClick(save_booking_found, duration=0.5)
-        time.sleep(1)
+        # [Booking scope] Presses 'Save' to save booking.
+        pyautogui.leftClick(
+            self.coordinate.get('save_booking'),
+            duration=0.5
+            )
+        time.sleep(3)
 
         # [amount of units, sequence no, weight per unit (kg)].
         unit_dict = {
@@ -380,48 +254,19 @@ class NavisGUI:
             '22G1': [data['count_20dv'], 3, "22G1", data['weight_20dv'], data['hazard_20dv']]
             }
         
-        add_equipment_found = pyautogui.locateCenterOnScreen(
-            image=self.config.add_equipment,
-            region=self.config.add_equipment_region,
-            minSearchTime=1,
-            grayscale=True,
-            confidence=0.8
-            )
-        
-        if add_equipment_found is None:
-            print("Add equipment button not found in Navis.")
-            exit()
-
-        # Loop for each type of units, maximum of 3
         for value in unit_dict.values():
             if value[0] == 0:
                 continue
             
             # [Unit scope] Presses 'Add' -> 'Add Booking Item'.
             pyautogui.leftClick(
-                add_equipment_found,
+                self.coordinate.get('add_equipment'),
                 duration=0.5
                 )
-            print(self.config.equ_window)
-            print(self.config.equ_window_region)
-            print("Trying")
-            equ_window_found = pyautogui.locateOnScreen(
-                image=self.config.equ_window,
-                region=self.config.equ_window_region,
-                minSearchTime=10,
-                grayscale=True,
-                confidence=0.6
-            )
-
-            print("Ended")
-            
-            if equ_window_found is None:
-                print("Equipment window not found in Navis.")
-                exit()
+            time.sleep(4)
             
             pyautogui.write(str(value[0]))
             pyautogui.press('tab')
-            
 
             pyautogui.write(str(value[1]))
             pyautogui.press('tab')
@@ -430,20 +275,13 @@ class NavisGUI:
             pyautogui.press('tab')
 
             # [Unit scope] locates equ_weight, left clicks box and writes weight
-            weight_coord_found = pyautogui.locateOnScreen(
-                image=self.config.equ_weight,
-                minSearchTime=1,
-                grayscale=True,
-                confidence=0.8
+            weight_coord = pyautogui.locateOnScreen(
+                image=self.png['equipment'].get('equ_weight'),
+                minSearchTime=3
                 )
-            
-            if weight_coord_found is None:
-                print("Weight box not found in Navis.")
-                exit()
-
             pyautogui.leftClick(
-                weight_coord_found[0] + 200,
-                weight_coord_found[1] + 7,
+                weight_coord[0] + 200,
+                weight_coord[1] + 4,
                 duration=0.5
                 )
             pyautogui.write(str(value[3]))
@@ -452,39 +290,14 @@ class NavisGUI:
             if value[4]:
                 self.add_hazards_info(value[4])
 
-            save_equ_found = pyautogui.locateCenterOnScreen(
-                image=self.config.save_equipment,
-                region=self.config.save_equipment_region,
-                minSearchTime=1,
-                grayscale=True,
-                confidence=0.8
-                )
-            
-            if save_equ_found is None:
-                print("Save equipment button not found in Navis.")
-                exit()
-            
+            # [Unit scope] Presses 'Save' to save unit and then 'Close'
             pyautogui.leftClick(
-                save_equ_found,
-                duration=0.5
-                )
-            
-            pyautogui.locateCenterOnScreen(
-                image=self.config.close_equipment,
-                region="TODO",
-                minSearchTime=1,
-                grayscale=True,
-                confidence=0.8
-                )
-            
-            if save_equ_found is None:
-                print("Close equipment button not found in Navis.")
-                exit()
-
-            pyautogui.leftClick(
-                save_equ_found,
-                duration=0.5
-                )
+                self.coordinate.get('save_equipment'),
+                duration=0.5)
+            time.sleep(3)
+            pyautogui.move(xOffset=45, yOffset=0, duration=0.2)
+            pyautogui.leftClick()
+            time.sleep(3)
 
 
     def force_update_booking(self, data: dict) -> None:
@@ -493,46 +306,36 @@ class NavisGUI:
         :param data: dictionary with booking data.
         """
 
-        booking_window_found = pyautogui.locateOnScreen(
-            image=self.config.booking_window,
-            region=self.config.booking_window_region,
-            minSearchTime=10,
-            grayscale=True,
-            confidence=0.8
+        time.sleep(5)
+        # Click vessel visit field
+        pyautogui.leftClick(
+            self.coordinate.get('vessel_visit'),
+            duration=0.5
             )
-        
-        if booking_window_found is None:
-            print("Booking window not found.")
-            exit()
-        
-        pyautogui.press('tab')
-        time.sleep(0.5)
-        pyautogui.press('tab')
-        time.sleep(0.5)
+        with pyautogui.hold('ctrl'):
+            pyautogui.press('a')
+        pyautogui.press('backspace')
         pyautogui.write(str(data['navis_voy']))
-        time.sleep(1)
         pyautogui.press('tab')
-        time.sleep(0.5)
-        pyautogui.press('tab')
-        time.sleep(0.5)
+        time.sleep(2)
+
+        # Clicks 'TOD' field
+        pyautogui.leftClick(
+            self.coordinate.get('terminal_of_discharge'),
+            duration=0.5
+            )
+        with pyautogui.hold('ctrl'):
+            pyautogui.press('a')
+        pyautogui.press('backspace')
         pyautogui.write(str(data['tod']))
-        time.sleep(0.2)
         pyautogui.press('tab')
+        time.sleep(2)
 
-
-        save_booking_found = pyautogui.locateCenterOnScreen(
-            image=self.config.save_booking,
-            region=self.config.save_booking_region,
-            minSearchTime=0.5,
-            grayscale=True,
-            confidence=0.8
-        )
-
-        if save_booking_found is None:
-            print("Save booking button not found in Navis.")
-            exit()
-
-        pyautogui.leftClick(save_booking_found, duration=0.5)
+        # [Booking scope] Presses 'Save' to save booking.
+        pyautogui.leftClick(
+            self.coordinate.get('save_booking'),
+            duration=0.5
+            )
 
 
     def click_edit_booking(self, coordinates: pyautogui.Point):
@@ -544,26 +347,19 @@ class NavisGUI:
         pyautogui.rightClick(coordinates, duration=0.5)
         pyautogui.move(xOffset=10, yOffset=10)
         pyautogui.leftClick(duration=0.5)
+        time.sleep(6)
 
 
     def close_booking_window(self):
         """Closes booking window in Navis."""
 
-        save_button_found = pyautogui.locateCenterOnScreen(
-            image=self.config.save_booking,
-            region=self.config.save_booking_region,
-            minSearchTime=0.5,
-            grayscale=True,
-            confidence=0.8
-        )
+        # Press 'Close' on [Booking scope]
+        pyautogui.leftClick(
+            self.coordinate.get('close_booking'),
+            duration=0.5
+            )
 
-        if save_button_found is None:
-            print("Save button not found in Navis.")
-            exit()
-        
-        pyautogui.leftClick(save_button_found, duration=0.5)
 
-        
     def update_booking_info(self, data: dict, bool_dict: dict) -> None:
         """Updates booking info in Navis.
         
@@ -606,12 +402,13 @@ class NavisGUI:
     def _check_and_handle_delete_equ_error(self):
         """Checks for error message and handles it if found."""
 
-        
+        ERROR_IMAGE = self.png['error_handling'].get('delete_units_gated_in')
+        ERROR_REGION = tuple([int(i) for i in self.region.get('error_units_gated_in')])
         
         coord = pyautogui.locateOnScreen(
-            image=self.config.error_gated_in,
+            image=ERROR_IMAGE,
             minSearchTime=2,
-            region=self.config.error_gated_in_region
+            region=ERROR_REGION
             )
         if coord:
             pyautogui.leftClick(
@@ -623,12 +420,13 @@ class NavisGUI:
     def check_and_handle_equ_update_error(self):
         """Checks for error message and handles it if found."""
 
-        
+        ERROR_IMAGE = self.png['error_handling'].get('update_less_than_gated_in')
+        ERROR_REGION = tuple([int(i) for i in self.region.get('error_update_less_than_gated_in')])
         
         coord = pyautogui.locateOnScreen(
-            image=self.config.error_less_than_gated_in,
+            image=ERROR_IMAGE,
             minSearchTime=2,
-            region=self.config.error_less_than_gated_in_region
+            region=ERROR_REGION
             )
         if coord:
             # Click 'OK' on error message.
@@ -665,13 +463,17 @@ class NavisGUI:
         """
 
         time.sleep(4)
-        
+        EQUIPMENT_SEARCH = tuple([int(i) for i in self.region.get('equipment_search')])
+        IMAGE_40HC = self.png['equipment'].get('40hc')
+        IMAGE_40DV = self.png['equipment'].get('40dv')
+        IMAGE_20DV = self.png['equipment'].get('20dv')
+        EQU_WEIGHT = self.png['equipment'].get('equ_weight')
 
         # [boolean, image, amount of units, sequence no, equ type, weight per unit (kg), hazard].
         unit_dict = {
-            '45G1': [bool_dict['count_40hc'], self.config.image_40hc, data['count_40hc'], 1, "45G1", data['weight_40hc'], data['hazard_40hc']],
-            '42G1': [bool_dict['count_40dv'], self.config.image_40dv, data['count_40dv'], 2, "42G1", data['weight_40dv'], data['hazard_40dv']],
-            '22G1': [bool_dict['count_20dv'], self.config.image_20dv, data['count_20dv'], 3, "22G1", data['weight_20dv'], data['hazard_20dv']]
+            '45G1': [bool_dict['count_40hc'], IMAGE_40HC, data['count_40hc'], 1, "45G1", data['weight_40hc'], data['hazard_40hc']],
+            '42G1': [bool_dict['count_40dv'], IMAGE_40DV, data['count_40dv'], 2, "42G1", data['weight_40dv'], data['hazard_40dv']],
+            '22G1': [bool_dict['count_20dv'], IMAGE_20DV, data['count_20dv'], 3, "22G1", data['weight_20dv'], data['hazard_20dv']]
             }
         
         for unit in unit_dict.values():
@@ -679,7 +481,7 @@ class NavisGUI:
                 coord = pyautogui.locateOnScreen(
                     image=unit[1],
                     minSearchTime=3,
-                    region=self.config.equipment_search_region
+                    region=EQUIPMENT_SEARCH
                     )
                 
                 if unit[2] == 0:  # If data is 0 then delete row
@@ -708,7 +510,7 @@ class NavisGUI:
                     pyautogui.press('tab')
 
                     weight_coord = pyautogui.locateOnScreen(
-                        image=self.config.equ_weight,
+                        image=EQU_WEIGHT,
                         minSearchTime=3
                         )
                     pyautogui.leftClick(

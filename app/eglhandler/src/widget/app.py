@@ -124,7 +124,6 @@ class EGLApp:
             text="Hantera markerade bokningar",
             width=30, style="Accent.TButton",
             command=self.run_no_voy_with_threading
-            #command=self._run_no_voy_navis_program
         )
         tree = ttk.Treeview(
             self.content,
@@ -213,6 +212,7 @@ class EGLApp:
         bookings = self._get_values_from_no_navis_bookings()
         bookings_list = bookings.split(', ')
         main.run_missing_bookings_in_navis(bookings_list)
+        self._write_out_missing_bookings()
         self.no_voy.get('button').config(state=tk.NORMAL)
         print("Done")
 
@@ -325,8 +325,6 @@ class EGLApp:
             for booking in bookings_with_no_terminal:
                 no_terminal_tree.insert("", tk.END, values=booking)
 
-        # Only to be used if functions should repear itself over and over again
-        #self.window.after(self.ms_delay, self._write_out_missing_bookings)
 
     def menu_bar(self) -> None:
         menu_bar = tk.Menu(self.window)
@@ -341,7 +339,6 @@ class EGLApp:
         settings_menu.add_command(label="About...", command=self.about)
         menu_bar.add_cascade(label="Settings", menu=settings_menu)
 
-
         self.window.bind_all("<Control-Q>", self.refresh_window)
         self.window.bind_all("<Control-q>", self.refresh_window)
 
@@ -352,7 +349,7 @@ class EGLApp:
         self.email_count = booking_count
          
 
-    def refresh_window(self) -> None:
+    def refresh_window(self, event) -> None:
         self.window.destroy()
         from eglhandler.src import main_app
         main_app.run_application()
