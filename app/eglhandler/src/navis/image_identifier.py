@@ -10,7 +10,7 @@ def get_mouse_coords(file_paths: str|list, duration: float, region: tuple=None) 
     # Check if file_paths is a string, if it is convert it to a list
     if isinstance(file_paths, str):
         file_paths = [file_paths]
-
+    
     images: list = []
     for file in file_paths:
         image = cv2.imread(file)
@@ -39,7 +39,7 @@ def get_mouse_coords(file_paths: str|list, duration: float, region: tuple=None) 
             _, max_val, _, max_loc = cv2.minMaxLoc(result)
 
             # If the similarity score is above a certain threshold, consider it a match
-            threshold = 0.8
+            threshold = 0.90
             if max_val > threshold:
                 reference_height, reference_width = reference_gray.shape
                 center_x = max_loc[0] + reference_width // 2

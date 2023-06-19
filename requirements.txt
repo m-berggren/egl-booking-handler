@@ -1,3 +1,4 @@
+altgraph==0.17.3
 azure-core==1.27.0
 azure-identity==1.13.0
 certifi==2023.5.7
@@ -7,6 +8,8 @@ colorama==0.4.6
 comtypes==1.2.0
 cryptography==41.0.1
 EasyProcess==1.1
+# Editable Git install with no remote (eglhandler==0.0.10)
+-e c:\users\swv224\global freight solutions ab\xpf - operations\development\python\egl-booking-handler
 entrypoint2==1.1
 idna==3.4
 iniconfig==2.0.0
@@ -15,14 +18,19 @@ msal==1.22.0
 msal-extensions==1.0.0
 mss==9.0.1
 numpy==1.24.3
+opencv-python==4.7.0.72
 packaging==23.1
 pandas==2.0.2
+pefile==2023.2.7
 Pillow==9.5.0
 pluggy==1.0.0
 portalocker==2.7.0
 PyAutoGUI==0.9.54
 pycparser==2.21
+pydantic==1.10.9
 PyGetWindow==0.0.9
+pyinstaller==5.12.0
+pyinstaller-hooks-contrib==2023.3
 PyJWT==2.7.0
 PyMsgBox==1.0.9
 PyMuPDF==1.22.3
@@ -35,6 +43,7 @@ python-dateutil==2.8.2
 pytweening==1.0.7
 pytz==2023.3
 pywin32==306
+pywin32-ctypes==0.2.0
 pywinauto==0.6.8
 PyYAML==6.0
 requests==2.31.0

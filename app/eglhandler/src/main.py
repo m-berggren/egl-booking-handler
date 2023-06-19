@@ -1,5 +1,6 @@
 import os
 import shutil
+from datetime import datetime
 
 import yaml
 
@@ -46,6 +47,8 @@ def run_main_program():
     if email_count == 0:
         print("No email(s) found in folder.")
         return
+    
+    today = datetime.today().strftime('%Y/%m/%d')
     
     print(f"Processing {email_count} email(s)...\n")
     
@@ -114,6 +117,11 @@ def run_main_program():
         elif pdf_exists:
             # If name of pdf is already in database
             print(f"PDF-file for {data['booking_no']} already exists in database.")
+            egl.move_email_to_folder(email_id, 'no_change_folder_id')
+
+        elif today > data['etd']:
+            # If ETD is in the past
+            print(f"ETD for {data['booking_no']} is in the past.")
             egl.move_email_to_folder(email_id, 'no_change_folder_id')
 
         elif cancellation:

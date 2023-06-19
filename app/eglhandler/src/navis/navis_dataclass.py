@@ -16,7 +16,7 @@ class Startup(BaseModel):
     
 class PngBooking(BaseModel):
     active_vessel: str
-    add: str
+    add_booking: str
     add_equ: str
     booking_exist: str
     close_window: str
@@ -27,6 +27,7 @@ class PngBooking(BaseModel):
     line_operator_box: str
     port_of_discharge_box: str
     save_window: str
+    shipper_field: str
     tod_booking_window: str
     vessels_active: str
     vessels_active_field: str
@@ -160,6 +161,7 @@ class Config(BaseModel):
     equ_confirm_cancel: str
     vessel_visit_booking_window: str
     tod_booking_window: str
+    shipper_field: str
     
 
 def transform_navis_dataclass_to_dict(navis: Navis) -> dict:
@@ -220,6 +222,7 @@ def transform_navis_dataclass_to_dict(navis: Navis) -> dict:
         - equ_confirm_cancel
         - vessel_visit_booking_window
         - tod_booking_window
+        - shipper_field
     """
     return {
         'navis_logo': navis.png.startup.navis_logo,
@@ -244,7 +247,7 @@ def transform_navis_dataclass_to_dict(navis: Navis) -> dict:
         'vessel_exist_region': navis.region.exist.vessel,
         'booking_exist': navis.png.booking.booking_exist,
         'booking_exist_region': navis.region.exist.booking,
-        'add_booking': navis.png.booking.add,
+        'add_booking': navis.png.booking.add_booking,
         'add_booking_region': navis.region.booking.add_button,
         'save_booking': navis.png.booking.save_window,
         'save_booking_region': navis.region.booking.save_or_close,
@@ -276,4 +279,5 @@ def transform_navis_dataclass_to_dict(navis: Navis) -> dict:
         'equ_confirm_cancel': navis.png.equipment.equ_confirm_cancel,
         'vessel_visit_booking_window': navis.png.booking.vessel_visit_booking_window,
         'tod_booking_window': navis.png.booking.tod_booking_window,
+        'shipper_field': navis.png.booking.shipper_field,
     }
