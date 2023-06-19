@@ -52,3 +52,4 @@ share/python-wheels/
 MANIFEST
 *.exe
 
+.jnlp
