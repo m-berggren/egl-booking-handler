@@ -125,7 +125,7 @@ def create_string_of_unnos(hazards_list:list) -> str:
     lists_into_string = concatenate_list(hazards_list)
 
     if lists_into_string:
-        list_all_unnr = re.findall(r"\d\/\d{4}", lists_into_string)
+        list_all_unnr = re.findall(r"\d*\.*\d\/\d{4}", lists_into_string)
         return ', '.join(set(list_all_unnr))
     else:
         return ""

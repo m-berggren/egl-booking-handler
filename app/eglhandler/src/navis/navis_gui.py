@@ -81,9 +81,6 @@ def update_booking(data: dict, bool_dict: dict, config, database_file: str) -> N
                     navis.click_edit_booking(booking_exist)
                     navis.update_equ_info(data, bool_dict)
                     navis.close_booking_window()
-                    
-                else:
-                    navis.close_booking_window()
                 
             else:
                 navis.add_booking(data)

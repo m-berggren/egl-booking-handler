@@ -97,7 +97,6 @@ class NavisGUI:
 
     def handle_connection_error_window(self) -> None:
         """ Checks if error message found."""
-
         error_found = get_mouse_coords(self.config.connection_error, duration=0.5)
         if error_found is None:
             return
@@ -185,9 +184,11 @@ class NavisGUI:
         # may find image for wrong voyage otherwise.
 
         # Searches for vessel in Navis, return coordinates if found
-        vessel_found = get_mouse_coords(self.config.vessel_exist, duration=1)
+        vessel_found = get_mouse_coords(self.config.vessel_exist, duration=5)
         if vessel_found is None:
             return None
+        
+        time.sleep(1)
         
         return vessel_found
 
@@ -237,6 +238,8 @@ class NavisGUI:
         booking_found = get_mouse_coords(self.config.booking_exist, duration=5)
         if booking_found is None:
             return None
+        
+        time.sleep(1)
 
         return booking_found
     
@@ -269,14 +272,13 @@ class NavisGUI:
         
         time.sleep(3)
         pyautogui.write('EGL')
-        time.sleep(2)
+        time.sleep(3)
         pyautogui.press('tab')
 
         # Time to sleep is set at init of class
         time.sleep(self.wait_for_vessel)
         pyautogui.write(data['navis_voy'])
-
-        time.sleep(2)
+        time.sleep(4)
         pyautogui.press('tab')
         time.sleep(1)
         pyautogui.press('tab')
@@ -284,8 +286,7 @@ class NavisGUI:
         # Time to sleep is set at init of class
         time.sleep(self.wait_for_tod)
         pyautogui.write(data['tod'])
-
-        time.sleep(1)
+        time.sleep(3)
         pyautogui.press('tab')
         time.sleep(1)
 
@@ -297,11 +298,12 @@ class NavisGUI:
         time.sleep(0.5)
         
         pyautogui.leftClick(shipper_field_found, duration=0.5)
+        time.sleep(0.5)
         with pyautogui.hold('ctrl'):
             pyautogui.press('a')
         pyautogui.write('XCL')
+        time.sleep(2)
         pyautogui.press('tab')
-        
         time.sleep(1)
 
         save_booking_found = get_mouse_coords(self.config.save_booking, duration=5)
@@ -375,8 +377,9 @@ class NavisGUI:
                 duration=0.3
                 )
             pyautogui.write(str(value[3]))
-            pyautogui.press('tab')
 
+            time.sleep(1)
+            pyautogui.press('tab')
             time.sleep(1)
 
             # If there is hazardous information
@@ -422,15 +425,15 @@ class NavisGUI:
         pyautogui.press('tab')
         time.sleep(1)
         pyautogui.press('tab')
-        time.sleep(4)
+        time.sleep(5)
         pyautogui.write(str(data['navis_voy']))
-        time.sleep(2)
+        time.sleep(4)
         pyautogui.press('tab')
         time.sleep(1)
         pyautogui.press('tab')
         time.sleep(3)
         pyautogui.write(str(data['tod']))
-        time.sleep(2)
+        time.sleep(3)
         pyautogui.press('tab')
         time.sleep(1)
 
@@ -456,7 +459,6 @@ class NavisGUI:
         pyautogui.move(xOffset=10, yOffset=10)
         pyautogui.leftClick(duration=0.5)
         time.sleep(1)
-
 
 
     def close_booking_window(self):
@@ -503,13 +505,13 @@ class NavisGUI:
                 y=vessel_visit_found[1],
                 duration=0.2
                 )
-
+            time.sleep(4)
             with pyautogui.hold('ctrl'):
                 pyautogui.press('a')
             pyautogui.press('backspace')
             pyautogui.write(str(data['navis_voy']))
+            time.sleep(3)
             pyautogui.press('tab')
-
             time.sleep(2)
             
 
@@ -522,19 +524,20 @@ class NavisGUI:
                 sys.exit()
 
             time.sleep(2)
-            
             pyautogui.leftClick(
                 x=tod_found[0] + 250,
                 y=tod_found[1],
                 duration=0.2
                 )
             
+            time.sleep(3)
             with pyautogui.hold('ctrl'):
                 pyautogui.press('a')
             pyautogui.press('backspace')
             pyautogui.write(str(data['tod']))
+    
+            time.sleep(2)
             pyautogui.press('tab')
-
             time.sleep(2)
 
         # Search for save button and click it
@@ -565,13 +568,16 @@ class NavisGUI:
                 sys.exit()
             else:
                 return
-        
+            
+        time.sleep(1)
+
         # Will click 'OK' on error message
         pyautogui.leftClick(
             x=error_message_found[0] + 422,
             y=error_message_found[1] + 181,
             duration=0.5
             )
+        time.sleep(1)
         return
 
 
@@ -582,6 +588,8 @@ class NavisGUI:
         error_message_found = get_mouse_coords(self.config.error_less_than_gated_in, duration=0.5)
         if error_message_found is None:
             return
+        
+        time.sleep(1)
         
         # Will click 'OK' on error message
         pyautogui.leftClick(
@@ -596,6 +604,8 @@ class NavisGUI:
             print("Cancel button not found in Navis.")
             print(f"Class: {self.__class__.__name__}, Function: {inspect.stack()[0].function}")
             sys.exit()
+
+        time.sleep(1)
         
         pyautogui.leftClick(equ_cancel_button_found, duration=0.5)
 
@@ -605,20 +615,25 @@ class NavisGUI:
             print("Confirm cancel button not found in Navis.")
             print(f"Class: {self.__class__.__name__}, Function: {inspect.stack()[0].function}")
             sys.exit()
-        
+
+        time.sleep(1)
         pyautogui.leftClick(confirm_cancel_found, duration=0.5)
+        time.sleep(1)
         return
 
 
     def confirm_delete_units(self):
         """Confirms deletion of units."""
 
+        time.sleep(1)
         # Search for 'Yes' button in confirmation window and click it
         equ_confirm_delete_found = get_mouse_coords(self.config.equ_confirm_cancel, duration=0.5)
         if equ_confirm_delete_found is None:
             return
-    
+
+        time.sleep(1)
         pyautogui.leftClick(equ_confirm_delete_found, duration=0.5)
+        time.sleep(1)
         return
         
 
@@ -641,7 +656,7 @@ class NavisGUI:
 
                 unit_image_found = get_mouse_coords(unit[1], duration=5)
 
-                time.sleep(2)
+                time.sleep(1)
                                                 
                 if unit[2] == 0:  # If data is 0 then delete row
                     pyautogui.rightClick(unit_image_found, duration=0.5)
@@ -672,14 +687,17 @@ class NavisGUI:
                         print(f"Class: {self.__class__.__name__}, Function: {inspect.stack()[0].function}")
                         sys.exit()       
 
-                    time.sleep(3)
+                    time.sleep(2)
                     pyautogui.write(str(unit[2]))
+                    time.sleep(1)
                     pyautogui.press('tab')
                     time.sleep(2)
                     pyautogui.write(str(unit[3]))
+                    time.sleep(1)
                     pyautogui.press('tab')
                     time.sleep(2)
                     pyautogui.write(str(unit[4]))
+                    time.sleep(1)
                     pyautogui.press('tab')
 
                     # Search for weight box and write weight
@@ -696,7 +714,6 @@ class NavisGUI:
                         duration=0.5
                         )
                     pyautogui.write(str(unit[5]))
-
                     time.sleep(2)
 
                     # If there is hazardous information
@@ -739,6 +756,7 @@ class NavisGUI:
 
                     time.sleep(3)
                     pyautogui.write(str(unit[2]))
+                    time.sleep(2)
                     pyautogui.press('tab')
                     time.sleep(2)
 
@@ -788,8 +806,11 @@ class NavisGUI:
 
         pyautogui.leftClick(delete_booking_confirmation_found, duration=0.5)
 
+        time.sleep(1)
+
         # Check for error message (when containers are collected or gated in).
-        self.check_and_handle_delete_equ_error(action='handle')
+        self.check_and_handle_delete_equ_error()
+        
 
 
     def add_hazards_info(self, string: str) -> None:
@@ -850,6 +871,7 @@ class NavisGUI:
 
                 time.sleep(1)
                 pyautogui.leftClick(hazards_button_add_unno_found, duration=0.5)
+                time.sleep(1)
                 
             # After first loop will only needs to add unnr
             if num > 0:
@@ -872,4 +894,4 @@ class NavisGUI:
         time.sleep(1)
 
         pyautogui.leftClick(hazards_save_button_found, duration=0.5)
-        time.sleep(1)
+        time.sleep(2)

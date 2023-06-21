@@ -166,22 +166,17 @@ def booking_info(dir: str, pdf_file: str, config: dict) -> tuple:
 
 if __name__ == '__main__':
     
-    """ROOT_DIR = os.path.abspath('')
-    pdf_folder = r".\docs\downloaded_pdfs"
-    file_dir = os.path.join(ROOT_DIR, pdf_folder)
+    def parse_one_file(file, config):
+        print(parse_pdf(file, config))
+        
+    import yaml
+    with open(r"app\eglhandler\config.yaml", 'r') as _f:
+        config = yaml.safe_load(_f)
+    
+    directory = config['directories'].get('parsed')
+    file = os.path.join(directory, r"SB6KVGC2.PDF")
+    parse_one_file(file, config)
 
-    with open('tests\pdf_parser_test.txt', 'w') as f:
-        for file in os.listdir(pdf_folder):
-            nl = "\n"
-            break_line = "|" + "------------------------"*3 + "|"+ nl
-            f.write(break_line)
-            print(break_line)
-            main_info = main(os.path.join(pdf_folder, file))
-            if main_info is not None:
-                for key, value in main_info.items():
-                    string = f'|{key:>20}: {str(value):<50}|'
-                    f.write(string + nl)
-                    print(string)"""
 
 
 
