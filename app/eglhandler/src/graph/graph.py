@@ -172,18 +172,24 @@ class EGL(Graph):
         email_data = email_response.json()
 
         """ Check if e-mail has attachments. If not, exit.
-        Then get the first attachment only and download it."""
+        Then loop through attachments and download first PDF-encounter."""
         if not email_data['hasAttachments']:
             print(f"No attachments in e-mail.")
             return None
-        
-        attachment = email_data['attachments'][0]
-        attachment_id = attachment['id']
-        attachment_filename = attachment['name']
 
-        # Check if attachment is a PDF
-        if attachment['contentType'] != "application/pdf":
-            print(f"Attachment is not a PDF: {attachment_filename}")
+        attachments = email_data['attachments']
+        attachment_id = None
+        attachment_filename = None
+
+        for attachment in attachments:
+            if attachment['contentType'] == "application/pdf":
+                attachment_id = attachment['id']
+                attachment_filename = attachment['name']
+                break
+
+        # Check if there are any PDF attachments
+        if attachment_filename is None:
+            print(f"No PDF attachment in e-mail.")
             return None
 
         attachment_url = f"{self.url}/{email_id}/attachments/{attachment_id}/$value"

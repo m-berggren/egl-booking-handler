@@ -78,7 +78,9 @@ def get_container_info(total_words, rect_list, rect_add, height) -> tuple:
     list_count_tare = []
     for rect in rect_list:
         rect = rect + rect_add + (0, height, 0, height)
-        result = re.match(r'(\d{1,4},\d{3}.\d{2})*(\+*\d{1,3},\d{3})*',
+
+        # Find the net weight and tare weight
+        result = re.match(r'((?:\d{1,4},)?\d{1,3},\d{3}\.\d{2}|\d{1,3}\.\d{2})*(\+*\d{1,3},\d{3})*',
                           ''.join([word[4] for word in total_words if fitz.Rect(word[:4]).intersects(rect)]))
         result_nwt = result.group(1)
         result_tare = result.group(2)

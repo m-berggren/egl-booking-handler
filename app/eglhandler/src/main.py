@@ -154,10 +154,20 @@ def run_main_program():
             egl.move_email_to_folder(email_id, 'no_change_folder_id')
 
         elif cancellation_exists_in_db:
-            # If cancellation exists in database
-            print(f"{data['booking_no']} already cancelled in database. Saving PDF file name.")
-            sql_table.when_cancellation_exists_in_db()
-            egl.move_email_to_folder(email_id, 'no_change_folder_id')
+            """ If cancellation exists in database check if revised number is higher,
+            if so, change cancellation status in database and update booking."""
+
+            if revised_no < int(data['revised_no']):
+                # Change cancellation status in database and update booking
+                print(f"{data['booking_no']} was cancelled but will now be re-created in Navis.")
+                sql_table.update_booking(data, booking_in_navis=True)
+                navis_gui.create_booking(data, config, DATABASE)
+                egl.move_email_to_folder(email_id, 'db_folder_id')
+            else:
+                # When revised no is less than in database
+                print(f"{data['booking_no']} already cancelled in database. Saving PDF file name.")
+                sql_table.when_cancellation_exists_in_db()
+                egl.move_email_to_folder(email_id, 'no_change_folder_id')
 
         elif revised_no < int(data['revised_no']):
             # If revised number in pdf_parser is greater than in database
