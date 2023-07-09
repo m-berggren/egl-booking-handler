@@ -171,16 +171,18 @@ def run_main_program():
 
         elif revised_no < int(data['revised_no']):
             # If revised number in pdf_parser is greater than in database
-            print(f"Updating {data['booking_no']} in database and possibly Navis.")
+            print(f"Updating {data['booking_no']} in database and in Navis if any changes.")
             boolean_dict = sql_table.update_booking(data)
             # Update booking in Navis
             navis_gui.update_booking(data, boolean_dict, config, DATABASE)
             egl.move_email_to_folder(email_id, 'db_folder_id')
 
         elif revised_no == int(data['revised_no']):
-            # If revised number in pdf_parser is equal to in database, then just update in database
-            print(f"Revised number in {data['booking_no']} is equal to in database.")
+            # If revised number in pdf_parser is equal to in database
+            print(f"Revised number in {data['booking_no']} is equal to in database but will update in Navis if any changes.")
             sql_table.update_booking(data)
+            # In case there are changes despite revised no being same, update in Navis too
+            navis_gui.update_booking(data, boolean_dict, config, DATABASE)
             egl.move_email_to_folder(email_id, 'no_change_folder_id')
 
         # Moves pdf to new directory 
