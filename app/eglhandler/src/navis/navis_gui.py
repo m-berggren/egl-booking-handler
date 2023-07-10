@@ -84,6 +84,7 @@ def update_booking(data: dict, bool_dict: dict, config, database_file: str) -> N
                 
             else:
                 navis.add_booking(data)
+                navis.close_booking_window()
         else:
             voyage_does_not_exist(data, database_file)
             
