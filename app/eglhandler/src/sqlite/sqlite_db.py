@@ -71,10 +71,6 @@ class SqliteDB:
         if not isinstance(columns, dict):
             raise TypeError("columns must be a dictionary")
         
-        """if not isinstance(table_name, str):
-            raise TypeError("table_name must be a string")
-        
-        self.table_name = table_name"""
 
         sql_table = f'''
         CREATE TABLE IF NOT EXISTS {self.table_name} (

@@ -60,14 +60,31 @@ def run_main_program():
         email_id, terminal_found, pdf_file = egl.download_pdf_from_email(
             DOWNLOAD_DIR
             )
-
+        
+        if pdf_file is None:
+            egl.move_email_to_folder(email_id, 'not_for_us_folder_id')
+            print(f"No attachment found in e-mail.")
+            print(f"{count + 1} of {email_count} e-mail(s).", "\n")
+            continue
+        
         # Parses pdf and gets booking info
         data, same_date, cancellation, terminal = pdf_parser.booking_info(
             DOWNLOAD_DIR,
             pdf_file,
             config
             )
-        
+
+        if data is None:
+            egl.move_email_to_folder(email_id, 'not_for_us_folder_id')
+            # Moves pdf to new directory 
+            shutil.move(
+                os.path.join(DOWNLOAD_DIR, pdf_file),
+                os.path.join(PARSED_DIR, pdf_file)
+                )
+            print(f"PDF-file {pdf_file} are not for us.")
+            print(f"{count + 1} of {email_count} e-mail(s).", "\n")
+            continue
+
         # If terminal was not found in pdf_parser, i.e. missing from pdf,
         # use terminal found in email bodypreview, if any
         if not data['tod']:
@@ -75,9 +92,6 @@ def run_main_program():
             terminal = terminal_found
             # Run functions to determine navis voyage again
         
-        if data is None:
-            continue
-
         # This is where the booking is sent to the database and handled in Navis
         sql_table = SqliteDB(DATABASE)
         cur = sql_table.conn.cursor()

@@ -144,13 +144,13 @@ class EGL(Graph):
 
         if not response.ok:
             print("\n", f"Error retrieving e-mails from EGL.download_pdf_from_email: {response.status_code, response.text}")
-            return None
+            return None, None, None
 
         emails = response.json()['value']
 
         if not emails:
             print(f"\nNo e-mails in folder.")
-            return None         
+            return None, None, None
         else:
             last_email = emails.pop()
         
@@ -167,7 +167,7 @@ class EGL(Graph):
 
         if not email_response.ok:
             print("\n", f"Error retrieving e-mail from EGL.download_pdf_from_email: {attachment_response.status_code, attachment_response.text}")
-            return None
+            return None, None, None
         
         email_data = email_response.json()
 
@@ -175,7 +175,7 @@ class EGL(Graph):
         Then loop through attachments and download first PDF-encounter."""
         if not email_data['hasAttachments']:
             print(f"No attachments in e-mail.")
-            return None
+            return None, None, None
 
         attachments = email_data['attachments']
         attachment_id = None
@@ -186,11 +186,16 @@ class EGL(Graph):
                 attachment_id = attachment['id']
                 attachment_filename = attachment['name']
                 break
+    
+            elif attachment['contentType'] == "application/octet-stream":
+                attachment_id = attachment['id']
+                attachment_filename = attachment['name']
+                break
 
         # Check if there are any PDF attachments
         if attachment_filename is None:
             print(f"No PDF attachment in e-mail.")
-            return None
+            return None, None, None
 
         attachment_url = f"{self.url}/{email_id}/attachments/{attachment_id}/$value"
 
@@ -203,6 +208,7 @@ class EGL(Graph):
         
         if not attachment_response.ok:
             print("\n", f"Error retrieving attachment from EGL.download_pdf_from_email: {attachment_response.status_code, attachment_response.text}")
+            return None, None, None
             
         with open(filename, 'wb') as file:
             file.write(attachment_response.content)

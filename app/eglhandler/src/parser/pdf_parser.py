@@ -118,6 +118,10 @@ def parse_pdf(file_path: str, config: dict) -> dict:
 
 def booking_info(dir: str, pdf_file: str, config: dict) -> tuple:
     """ Function that takes a directory and a pdf file and returns a dictionary with booking information."""
+
+    if pdf_file is None:
+        return None, None, None, None
+
     # Get all data from pdf
     pdf_data = parse_pdf(os.path.join(dir, pdf_file), config)
 
