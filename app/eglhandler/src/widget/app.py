@@ -10,6 +10,7 @@ from eglhandler.src.sqlite.sqlite_db import SqliteDB
 class EGLApp:
     """
     """
+    VERSION = "0.1.0"
 
     database: str
     forest_theme: str
@@ -349,7 +350,7 @@ class EGLApp:
         self.email_count = booking_count
          
 
-    def refresh_window(self, event) -> None:
+    def refresh_window(self) -> None:
         self.window.destroy()
         from eglhandler.src import main_app
         main_app.run_application()
@@ -357,7 +358,40 @@ class EGLApp:
 
     def about(self) -> None:
         """TODO: Add about for the program."""
-        pass
+
+        about_window = tk.Toplevel(self.window)
+        about_window.title("About")
+
+        content = ttk.Frame(about_window)
+
+        # Geometry: width x height + x_offset + y_offset
+        about_window.geometry("250x66+100+300")
+        about_window.resizable(False, False)
+        about_window.focus_set()
+        about_window.grab_set()
+        about_window.transient(self.window)
+  
+
+        label_version = ttk.Label(
+            content,
+            text=f"Version: {self.VERSION}",
+            font=("Calibri Light", 12),
+            padding=(0, 5, 0, 5),
+            justify=tk.CENTER,
+        )
+        
+        label_author = ttk.Label(
+            content,
+            text="Author: Marcus Berggren (2023)",
+            font=("Calibri Light", 12),
+            padding=(0, 5, 0, 5),
+            justify=tk.CENTER
+        )
+
+        content.pack()
+        label_version.pack(anchor=tk.W)
+        label_author.pack(anchor=tk.W)
+        
 
 
     def settings(self) -> None:
