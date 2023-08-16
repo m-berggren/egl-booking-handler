@@ -22,16 +22,13 @@ class EGLApp:
 
     config = dict
     forest_theme: str
-    ms_delay: int
-    style: ttk.Style
-    window: tk.Tk
-
     email_count: int
 
     def __init__(self, config: dict, database: str) -> None:
         self.database = database
         self.forest_theme = config['widget'].get('forest_theme')
         self.ms_delay = config['widget'].get('ms_delay')
+        self.config = config
         self.style = None
         self.content = None
 
@@ -350,14 +347,14 @@ class EGLApp:
         self.email_count = booking_count
          
 
-    def refresh_window(self) -> None:
+    def refresh_window(self, event=None) -> None:
         self.window.destroy()
         from eglhandler.src import main_app
         main_app.run_application()
-        
+    
 
     def about(self) -> None:
-        """TODO: Add about for the program."""
+        """About the program."""
 
         about_window = tk.Toplevel(self.window)
         about_window.title("About")
@@ -392,12 +389,30 @@ class EGLApp:
         label_version.pack(anchor=tk.W)
         label_author.pack(anchor=tk.W)
         
-
-
+        
     def settings(self) -> None:
         """TODO: Add settings for the program.
         Should configure config.yaml file."""
-        pass
+
+        settings_window = tk.Toplevel(self.window)
+        settings_window.title("Settings")
+
+        content = ttk.Frame(settings_window)
+
+        # Geometry: width x height + x_offset + y_offset
+        settings_window.geometry("1000x500+50+150")
+        settings_window.resizable(False, False)
+        settings_window.focus_set()
+        settings_window.grab_set()
+        settings_window.transient(self.window)
+    
+    def read_from_config_file(self) -> None:
+
+        config = self.config
+        login = config['navis']['login']
+        user = login['user']
+        password = login['password']
+
 
 
     def run_widget(self) -> None:

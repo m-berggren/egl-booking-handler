@@ -279,7 +279,7 @@ class NavisGUI:
         pyautogui.write(data['navis_voy'])
         time.sleep(5)
         pyautogui.press('tab')
-        time.sleep(2)
+        time.sleep(4)
         pyautogui.press('tab')
 
         # Time to sleep is set at init of class
@@ -287,7 +287,7 @@ class NavisGUI:
         pyautogui.write(data['tod'])
         time.sleep(4)
         pyautogui.press('tab')
-        time.sleep(2)
+        time.sleep(3)
 
         shipper_field_found = get_mouse_coords(self.config.shipper_field, duration=5)
         if shipper_field_found is None:
@@ -429,7 +429,7 @@ class NavisGUI:
         pyautogui.write(str(data['navis_voy']))
         time.sleep(5)
         pyautogui.press('tab')
-        time.sleep(2)
+        time.sleep(4)
         pyautogui.press('tab')
         time.sleep(4)
         pyautogui.write(str(data['tod']))
@@ -527,7 +527,7 @@ class NavisGUI:
             pyautogui.leftClick(
                 x=tod_found[0] + 250,
                 y=tod_found[1],
-                duration=0.2
+                duration=0.5
                 )
             
             time.sleep(4)
