@@ -143,9 +143,9 @@ def run_main_program():
             if booking_exists:
                 # When booking exists it can be removed
                 print(f"Deleting {data['booking_no']} in Navis.")
-                sql_table.update_booking_with_cancellation(data)
                 # Delete booking in Navis
                 navis_gui.delete_booking(data, config)
+                sql_table.update_booking_with_cancellation(data)
                 egl.move_email_to_folder(email_id, 'cancel_folder_id')
             else:
                 # If booking does not exist in database, but cancellation is found in pdf_parser
@@ -156,9 +156,9 @@ def run_main_program():
         elif not booking_exists:
             # If booking does not exist in database create it
             print(f"Creating {data['booking_no']} in Navis.")
-            sql_table.create_booking(data)
             # Create booking in Navis
             navis_gui.create_booking(data, config, DATABASE)
+            sql_table.create_booking(data)
             egl.move_email_to_folder(email_id, 'db_folder_id')
 
         elif revised_no > int(data['revised_no']):
@@ -174,8 +174,8 @@ def run_main_program():
             if revised_no < int(data['revised_no']):
                 # Change cancellation status in database and update booking
                 print(f"{data['booking_no']} was cancelled but will now be re-created in Navis.")
-                sql_table.update_booking(data, booking_in_navis=True)
                 navis_gui.create_booking(data, config, DATABASE)
+                sql_table.update_booking(data, booking_in_navis=True)
                 egl.move_email_to_folder(email_id, 'db_folder_id')
             else:
                 # When revised no is less than in database
@@ -194,9 +194,9 @@ def run_main_program():
         elif revised_no == int(data['revised_no']):
             # If revised number in pdf_parser is equal to in database
             print(f"Revised number in {data['booking_no']} is equal to in database but will update in Navis if any changes.")
-            sql_table.update_booking(data)
             # In case there are changes despite revised no being same, update in Navis too
             navis_gui.update_booking(data, boolean_dict, config, DATABASE)
+            sql_table.update_booking(data)
             egl.move_email_to_folder(email_id, 'no_change_folder_id')
 
         # Moves pdf to new directory 
