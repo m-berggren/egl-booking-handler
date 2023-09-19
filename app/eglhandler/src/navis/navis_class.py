@@ -135,7 +135,7 @@ class NavisGUI:
         """
         pyautogui.PAUSE = 0.1
 
-        pyautogui.write(self.navis.login.user)
+        pyautogui.write(self.navis.login.user.upper())
         pyautogui.press('tab')
         pyautogui.write(self.navis.login.password)
         pyautogui.press('enter')
