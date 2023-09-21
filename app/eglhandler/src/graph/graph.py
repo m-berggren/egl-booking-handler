@@ -175,7 +175,7 @@ class EGL(Graph):
         Then loop through attachments and download first PDF-encounter."""
         if not email_data['hasAttachments']:
             print(f"No attachments in e-mail.")
-            return None, None, None
+            return email_id, None, None
 
         attachments = email_data['attachments']
         attachment_id = None
@@ -195,7 +195,7 @@ class EGL(Graph):
         # Check if there are any PDF attachments
         if attachment_filename is None:
             print(f"No PDF attachment in e-mail.")
-            return None, None, None
+            return email_id, None, None
 
         attachment_url = f"{self.url}/{email_id}/attachments/{attachment_id}/$value"
 
