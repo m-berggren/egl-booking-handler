@@ -8,8 +8,6 @@ colorama==0.4.6
 comtypes==1.2.0
 cryptography==41.0.1
 EasyProcess==1.1
-# Editable Git install with no remote (eglhandler==0.0.10)
--e c:\users\swv224\global freight solutions ab\xpf - operations\development\python\egl-booking-handler
 entrypoint2==1.1
 idna==3.4
 iniconfig==2.0.0

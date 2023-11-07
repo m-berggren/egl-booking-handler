@@ -1,4 +1,4 @@
-from setuptools import setup, find_packages
+from setuptools import find_packages, setup
 
 setup(
     name="eglhandler",
@@ -39,6 +39,7 @@ setup(
         "pyscreenshot==3.1",
         "PyScreeze==0.1.29",
         "pytweening==1.0.7",
+        "pyyaml==6.0",
         "pywin32==306",
         "requests==2.31.0",
         "six==1.16.0",
