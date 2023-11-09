@@ -71,7 +71,7 @@ def parse_pdf(file_path: str, config: dict) -> dict:
     discharge_terminal = pf.get_value_in_rect(doc, total_words, DISCHARGE_TERMINAL, RECT_DISCHARGE_TERMINAL)
 
     trimmed_booked_date = pf.trim_date_string(date_booked)
-    terminal = pf.map_from_dict(config, discharge_terminal, stowage_code, section='tod')
+    terminal = pf.map_from_dict_terminal(config, discharge_terminal, stowage_code, section='tod')
     vessel = pf.map_from_dict(config, terminal, section='vessel')
     week = pf.departure_week(departure_date)
     navis_voyage = pf.navis_voyage(terminal, vessel, departure_date, week)
@@ -174,11 +174,11 @@ if __name__ == '__main__':
         print(parse_pdf(file, config))
         
     import yaml
-    with open(r"app\eglhandler\config.yaml", 'r') as _f:
+    with open(r"..\app\eglhandler\config.yaml", 'r') as _f:
         config = yaml.safe_load(_f)
     
     directory = config['directories'].get('parsed')
-    file = os.path.join(directory, r"SB750N00.PDF")
+    file = os.path.join('..', directory, r"SBB6S0P2.PDF")
     parse_one_file(file, config)
 
 

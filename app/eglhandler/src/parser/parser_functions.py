@@ -292,6 +292,25 @@ def map_from_dict(config: dict, *args:str, section: str) -> str:
                 return value.upper()
     return str()
 
+def map_from_dict_terminal(config: dict, *args:str, section: str) -> str:
+    """ Returns the first matching value from args in dict returned from
+    '_config_to_new_dict'.
+
+    :param config: The config dictionary
+    :param args: The arguments to be matched
+    :param section: The section in the config dictionary
+    :return: The first matching value
+    """
+    print(args)
+
+    map_dict = _config_to_new_dict(config, section)
+    for key, value in map_dict.items():
+        for arg in args:
+            key_found = re.search(f"[^\w]{key}[^\w]", arg.upper())
+            if key_found:
+                return value.upper()
+    return str()
+
 
 def navis_voyage(terminal, vessel, departure_date, week) -> str:
     """ Returns the voyage number in Navis format {XXX-YYWW}.
