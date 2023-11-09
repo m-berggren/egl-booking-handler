@@ -301,7 +301,6 @@ def map_from_dict_terminal(config: dict, *args:str, section: str) -> str:
     :param section: The section in the config dictionary
     :return: The first matching value
     """
-    print(args)
 
     map_dict = _config_to_new_dict(config, section)
     for key, value in map_dict.items():
