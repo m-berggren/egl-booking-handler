@@ -179,6 +179,7 @@ if __name__ == '__main__':
     
     directory = config['directories'].get('parsed')
     file = os.path.join('..', directory, r"SBB6S0P2.PDF")
+    #file = os.path.join('..', directory, r"SBB0T6YQ.PDF")
     parse_one_file(file, config)
 
 

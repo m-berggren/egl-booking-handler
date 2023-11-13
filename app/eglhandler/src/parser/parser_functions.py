@@ -308,6 +308,9 @@ def map_from_dict_terminal(config: dict, *args:str, section: str) -> str:
             key_found = re.search(f"[^\w]{key}[^\w]", arg.upper())
             if key_found:
                 return value.upper()
+            elif key in arg.upper():
+                return value.upper()
+
     return str()
 
 
