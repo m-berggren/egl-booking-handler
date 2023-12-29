@@ -327,4 +327,9 @@ def navis_voyage(terminal, vessel, departure_date, week) -> str:
 
     if not terminal:
         return str()
+    
+    # Quick fix: vessel 2352 omitted, cargo with ETD week 1 is moved to 2352 instead of 2401
+    if departure_date[2:4] == "24" and week == "01":
+        return f'{vessel}-2352'
+
     return f'{vessel}-{departure_date[2:4]}{week}'

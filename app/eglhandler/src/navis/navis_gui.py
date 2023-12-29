@@ -77,7 +77,10 @@ def update_booking(data: dict, bool_dict: dict, config, database_file: str) -> N
 
                 if bool_dict['count_40hc'] \
                         or bool_dict['count_40dv']\
-                        or bool_dict['count_20dv']:
+                        or bool_dict['count_20dv']\
+                        or bool_dict['hazard_20dv']\
+                        or bool_dict['hazard_40dv']\
+                        or bool_dict['hazard_40hc']:
                     navis.click_edit_booking(booking_exist)
                     navis.update_equ_info(data, bool_dict)
                     navis.close_booking_window()

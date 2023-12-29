@@ -178,7 +178,8 @@ if __name__ == '__main__':
         config = yaml.safe_load(_f)
     
     directory = config['directories'].get('parsed')
-    file = os.path.join('..', directory, r"SBB6S0P2.PDF")
+    #SBB6S0P2.PDF
+    file = os.path.join('..', directory, r"SBBZXNFB.PDF")
     parse_one_file(file, config)
 
 

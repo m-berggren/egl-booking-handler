@@ -648,13 +648,13 @@ class NavisGUI:
 
         # {unit type: [boolean, image, amount of units, sequence no, equ type, weight per unit (kg), hazard]}
         unit_dict = {
-            '45G1': [bool_dict['count_40hc'], self.config.image_40hc, data['count_40hc'], 1, "45G1", data['weight_40hc'], data['hazard_40hc']],
-            '42G1': [bool_dict['count_40dv'], self.config.image_40dv, data['count_40dv'], 2, "42G1", data['weight_40dv'], data['hazard_40dv']],
-            '22G1': [bool_dict['count_20dv'], self.config.image_20dv, data['count_20dv'], 3, "22G1", data['weight_20dv'], data['hazard_20dv']]
+            '45G1': [bool_dict['count_40hc'], self.config.image_40hc, data['count_40hc'], 1, "45G1", data['weight_40hc'], bool_dict['hazard_40hc'], data['hazard_40hc']],
+            '42G1': [bool_dict['count_40dv'], self.config.image_40dv, data['count_40dv'], 2, "42G1", data['weight_40dv'], bool_dict['hazard_40dv'], data['hazard_40dv']],
+            '22G1': [bool_dict['count_20dv'], self.config.image_20dv, data['count_20dv'], 3, "22G1", data['weight_20dv'], bool_dict['hazard_20dv'], data['hazard_20dv']],
             }
         
         for unit in unit_dict.values():
-            if unit[0]:  # If there are changes to unit type
+            if unit[0] or unit[6]:  # If there are changes to unit type or hazards
 
                 unit_image_found = get_mouse_coords(unit[1], duration=5)
 
@@ -720,7 +720,7 @@ class NavisGUI:
 
                     # If there is hazardous information
                     if unit[6]:
-                        self.add_hazards_info(unit[6])
+                        self.add_hazards_info(unit[7]) # Add hazard info
 
                     time.sleep(2*self.slowdown)
 
